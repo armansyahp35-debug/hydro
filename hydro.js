@@ -2339,16 +2339,15 @@ if (
     const data = await fetchJson(`https://api.tiklydown.eu.org/api/download?url=${encodeURIComponent(budy)}`);
     const vidnya = data?.video?.noWatermark;
     if (vidnya) {
-      const caption = `*[ TIKTOK DOWNLOADER ]*
-*Video dari*: _${data.author?.name ?? 'Tidak diketahui'} (@${data.author?.unique_id ?? 'Tidak diketahui'})_
-*Likes*: _${data.stats?.likeCount ?? 'Tidak diketahui'}_
-*Comments*: _${data.stats?.commentCount ?? 'Tidak diketahui'}_
-*Shares*: _${data.stats?.shareCount ?? 'Tidak diketahui'}_
-*Plays*: _${data.stats?.playCount ?? 'Tidak diketahui'}_
-*Saves*: _${data.stats?.saveCount ?? 'Tidak diketahui'}_
-*Title*: _${data.title ?? 'Tidak diketahui'}_
+      const caption = `\`✨━━━〔 🏞️ *𝐓𝐢𝐤𝐭𝐨𝐤 𝐃𝐋* 〕━━━✨\`
+Usᴇʀ ᴛᴛ : *${data.author?.name ?? 'Tidak diketahui'} (@${data.author?.unique_id ?? 'Tidak diketahui'})*
+Lɪᴋᴇs : *${data.stats?.likeCount ?? 'Tidak diketahui'}*
+Cᴏᴍᴍᴇɴᴛs : *${data.stats?.commentCount ?? 'Tidak diketahui'}*
+Pʟᴀʏs : *${data.stats?.playCount ?? 'Tidak diketahui'}*
+Sᴀᴠᴇs : *${data.stats?.saveCount ?? 'Tidak diketahui'}*
+Tɪᴛʟᴇ : *${data.title ?? 'Tidak diketahui'}*
 
-\`⏤͟͟͞͞ Downloader By ${botname}\``;
+\`⏤͟͟͞͞  ${botname}\``;
 
       await hydro.sendMessage(
         m.chat, 
@@ -2555,25 +2554,28 @@ hydro.sendMessage(from, {text:`\`\`\`「 Tautan Terdeteksi 」\`\`\`\n\n@${m.sen
   }
   }
 //anti bad words by xeon
-if (antiToxic)
-if (budy.includes('kontol') || budy.includes('kntl') || budy.includes('goblok') || budy.includes('babi') || budy.includes('asu') || budy.includes('bego') || budy.includes('tolol') || budy.includes('memek') || budy.includes('tai') || budy.includes('jancok') || budy.includes('gila') || budy.includes('jembut') || budy.includes('jembud') || budy.includes('fuck') || budy.includes('shit') || budy.includes('pantek') || budy.includes('tetek') || budy.includes('ngentot') || budy.includes('ngentod') || budy.includes('colmek') || budy.includes('dongo') || budy.includes('bacot') || budy.includes('anj') || budy.includes('clmk') || budy.includes('ngocok') || budy.includes('ngewe') || budy.includes('pea') || budy.includes('idiot') || budy.includes('bangsat')) {
-if (m.text) {
-bvl = `*HEH!* Jaga kata-kata!`
-if (isAdmins) return reply(bvl)
-if (!m.key.fromMe) return reply(bvl)
-if (Ahmad) return reply(bvl)
-        await hydro.sendMessage(m.chat,
-			    {
-			        delete: {
-			            remoteJid: m.chat,
-			            fromMe: false,
-			            id: m.key.id,
-			            participant: m.key.participant
-			        }
-			    })
-			await 
-			
-hydro.sendMessage(from, {text:`*HEH!* Jaga kata-kata!`, contextInfo:{mentionedJid:[m.sender]}}, {quoted:m})}
+if (antiToxic) {
+  const toxicRegex = /\b(kontol|kntl|goblok|babi|asu|bego|tolol|memek|tai|jancok|gila|jembut|jembud|fuck|shit|pantek|tetek|ngentot|ngentod|colmek|dongo|bacot|anj|clmk|ngocok|ngewe|pea|idiot|bangsat)\b/i;
+  if (toxicRegex.test(budy)) {
+    if (m.text) {
+      bvl = `*HEH!* Jaga kata-kata!`
+      if (isAdmins) return reply(bvl)
+      if (!m.key.fromMe) return reply(bvl)
+      if (Ahmad) return reply(bvl)
+      await hydro.sendMessage(m.chat, {
+        delete: {
+          remoteJid: m.chat,
+          fromMe: false,
+          id: m.key.id,
+          participant: m.key.participant
+        }
+      })
+      await hydro.sendMessage(from, {
+        text: `*HEH!* Jaga kata-kata!`,
+        contextInfo: { mentionedJid: [m.sender] }
+      }, { quoted: m })
+    }
+  }
 }
 //antilink youtube video by xeon
 if (AntiLinkYoutubeVid)
@@ -12095,16 +12097,15 @@ try {
   const data = await fetchJson(`https://api.tiklydown.eu.org/api/download?url=${encodeURIComponent(text)}`);
     const vidnya = data?.video?.noWatermark;
     if (vidnya) {
-      const caption = `*[ TIKTOK DOWNLOADER ]*
-*Video dari*: _${data.author?.name ?? 'Tidak diketahui'} (@${data.author?.unique_id ?? 'Tidak diketahui'})_
-*Likes*: _${data.stats?.likeCount ?? 'Tidak diketahui'}_
-*Comments*: _${data.stats?.commentCount ?? 'Tidak diketahui'}_
-*Shares*: _${data.stats?.shareCount ?? 'Tidak diketahui'}_
-*Plays*: _${data.stats?.playCount ?? 'Tidak diketahui'}_
-*Saves*: _${data.stats?.saveCount ?? 'Tidak diketahui'}_
-*Title*: _${data.title ?? 'Tidak diketahui'}_
+      const caption = `\`✨━━━〔 🏞️ *𝐓𝐢𝐤𝐭𝐨𝐤 𝐃𝐋* 〕━━━✨\`
+Usᴇʀ ᴛᴛ : *${data.author?.name ?? 'Tidak diketahui'} (@${data.author?.unique_id ?? 'Tidak diketahui'})*
+Lɪᴋᴇs : *${data.stats?.likeCount ?? 'Tidak diketahui'}*
+Cᴏᴍᴍᴇɴᴛs : *${data.stats?.commentCount ?? 'Tidak diketahui'}*
+Pʟᴀʏs : *${data.stats?.playCount ?? 'Tidak diketahui'}*
+Sᴀᴠᴇs : *${data.stats?.saveCount ?? 'Tidak diketahui'}*
+Tɪᴛʟᴇ : *${data.title ?? 'Tidak diketahui'}*
 
-\`⏤͟͟͞͞ Downloader By ${botname}\``;
+\`⏤͟͟͞͞  ${botname}\``;
       await hydro.sendMessage(
         m.chat, 
         { caption, video: { url: vidnya } }, 
@@ -28739,94 +28740,201 @@ hydro.sendMessage(m.chat, { image : eek, caption: ngen }, { quoted: m})
 }
 break
 case 'ytmp3': {
- if (!text) return m.reply(`Silakan masuk kan link youtube nya, Contoh: ${prefix + command} https://youtube.com/watch?v=Xs0Lxif1u9E`);
- const url = text.trim();
- const format = 'mp3';
- const regex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
- if (!regex.test(url)) {
- return m.reply('link yang anda berikan tidak valid, silahkan masuk kan link yang benar.');
- }
- reply('✨ Tunggu sebentar');
- try {
- const headers = {
-    "accept": "*/*",
-    "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-    "sec-ch-ua": "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\"",
-    "sec-ch-ua-mobile": "?1",
-    "sec-ch-ua-platform": "\"Android\"",
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "cross-site",
-    "Referer": "https://id.ytmp3.mobi/",
-    "Referrer-Policy": "strict-origin-when-cross-origin"
+  if (!text) return m.reply(`Silakan masuk kan link YouTube-nya.\nContoh: ${prefix + command} https://youtube.com/watch?v=Xs0Lxif1u9E`);
+  
+  const url = text.trim();
+  const regex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
+  if (!regex.test(url)) {
+    return m.reply('Link yang anda berikan tidak valid. Silakan masukkan link YouTube yang benar.');
   }
-const initial = await fetch(`https://d.ymcdn.org/api/v1/init?p=y&23=1llum1n471&_=${Math.random()}`, {headers});
-let format = 'mp4';
-const init = await initial.json();
-const id = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/|.*embed\/))([^&?/]+)/)?.[1];
-let convertURL = init.convertURL + `&v=${id}&f=${format}&_=${Math.random()}`;
-const converts = await fetch(convertURL, {headers});
-const convert = await converts.json();
-let info = {};
-for (let i = 0; i < 3; i++ ){
-    let j = await fetch(convert.progressURL, {headers});
-    info = await j.json();
-    console.log(info);
-    if (info.progress == 3) break;
+
+  m.reply('✨ Tunggu sebentar, sedang diproses...');
+
+  try {
+    // === API 1: ytdlpyton.nvlgroup.my.id ===
+    const api = `https://ytdlpyton.nvlgroup.my.id/download/audio?url=${encodeURIComponent(url)}&mode=url`;
+    const { data } = await axios.get(api);
+
+    if (!data.download_url) throw "Gagal ambil URL audio";
+
+    const buffer = await getBuffer(data.download_url);
+
+    await hydro.sendMessage(m.chat, {
+      audio: buffer,
+      mimetype: 'audio/mp4'
+    }, { quoted: m });
+
+  } catch (err) {
+    console.log('❌ Gagal API utama, fallback ke ymcdn:', err);
+
+    try {
+      const headers = {
+        "accept": "*/*",
+        "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+        "sec-ch-ua": "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\"",
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": "\"Android\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "Referer": "https://id.ytmp3.mobi/",
+        "Referrer-Policy": "strict-origin-when-cross-origin"
+      };
+      
+      const initial = await fetch(`https://d.ymcdn.org/api/v1/init?p=y&23=1llum1n471&_=${Math.random()}`, { headers });
+      const init = await initial.json();
+      const id = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/|.*embed\/))([^&?/]+)/)?.[1];
+      const convertURL = `${init.convertURL}&v=${id}&f=mp3&_=${Math.random()}`;
+      const converts = await fetch(convertURL, { headers });
+      const convert = await converts.json();
+
+      let info = {};
+      for (let i = 0; i < 3; i++) {
+        const j = await fetch(convert.progressURL, { headers });
+        info = await j.json();
+        if (info.progress == 3) break;
+      }
+
+      const result = {
+        url: convert.downloadURL,
+        title: info.title || "yt-audio"
+      };
+
+      await hydro.sendMessage(m.chat, {
+        audio: { url: result.url },
+        mimetype: 'audio/mp4'
+      }, { quoted: m });
+
+    } catch (err2) {
+      console.log('❌ Fallback juga gagal:', err2);
+      return m.reply("Maaf, terjadi kesalahan saat memproses audio.");
+    }
+  }
 }
-const result = {
-    url: convert.downloadURL,
-    title: info.title
-}
-await hydro.sendMessage(m.chat, {
-            audio: { url: result.url },
-            mimetype: 'audio/mp4'
-        }, { quoted: m });
-} catch {
-  reply('aduh kak error nieh..')
-}
+break;
+case "get": case "g": {
+if (!text) return reply("https://example.com")
+let data = await fetchJson(text)
+m.reply(JSON.stringify(data, null, 2))
 }
 break
 case 'ytmp4': {
- if (!text) return m.reply(`Silakan masuk kan link youtube nya, Contoh: ${prefix + command} https://youtube.com/watch?v=Xs0Lxif1u9E`);
-try {
- const url = text.trim();
-const headers = {
-    "accept": "*/*",
-    "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-    "sec-ch-ua": "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\"",
-    "sec-ch-ua-mobile": "?1",
-    "sec-ch-ua-platform": "\"Android\"",
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "cross-site",
-    "Referer": "https://id.ytmp3.mobi/",
-    "Referrer-Policy": "strict-origin-when-cross-origin"
+  if (!text) return m.reply(`Contoh:\n- *${prefix + command} https://youtu.be/abc123*\n- *${prefix + command} https://youtu.be/abc123 720*`);
+
+  const args = text.split(' ');
+  const link = args[0];
+  const resolution = args[1];
+
+  if (!isUrl(link) || !link.includes("youtu")) {
+    return m.reply("Masukkan link YouTube yang valid.");
   }
-const initial = await fetch(`https://d.ymcdn.org/api/v1/init?p=y&23=1llum1n471&_=${Math.random()}`, {headers});
-let format = 'mp4';
-const init = await initial.json();
-const id = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/|.*embed\/))([^&?/]+)/)?.[1];
-let convertURL = init.convertURL + `&v=${id}&f=${format}&_=${Math.random()}`;
-const converts = await fetch(convertURL, {headers});
-const convert = await converts.json();
-let info = {};
-for (let i = 0; i < 3; i++ ){
-    let j = await fetch(convert.progressURL, {headers});
-    info = await j.json();
-    console.log(info);
-    if (info.progress == 3) break;
+
+  // === HANYA TAMPILKAN PILIHAN RESOLUSI SAAT TIDAK ADA RESOLUSI DI INPUT ===
+  if (!resolution) {
+    try {
+      const reso = ['144', '240', '360', '480', '720', '1080'];
+      const rows = reso.map(r => ({
+        header: "",
+        title: `${r}p`,
+        description: `Unduh video resolusi ${r}p`,
+        id: `.ytmp4 ${link} ${r}`
+      }));
+
+      const msg = generateWAMessageFromContent(m.chat, {
+        viewOnceMessage: {
+          message: {
+            messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
+            interactiveMessage: {
+              body: { text: `🎥 Pilih resolusi video:` },
+              footer: { text: 'Asisten Hydro' },
+              header: {
+                title: "YouTube Downloader",
+                subtitle: "",
+                hasMediaAttachment: false,
+              },
+              nativeFlowMessage: {
+                buttons: [{
+                  name: "single_select",
+                  buttonParamsJson: JSON.stringify({
+                    title: "Pilih Resolusi",
+                    sections: [{ title: "Resolusi Tersedia", rows }]
+                  })
+                }]
+              }
+            }
+          }
+        }
+      }, { quoted: m }, {});
+      await hydro.relayMessage(msg.key.remoteJid, msg.message, { messageId: msg.key.id });
+    } catch {
+      return m.reply("Gagal menampilkan resolusi.");
+    }
+  } else {
+    try {
+      // === Coba API UTAMA ===
+      const apiUrl = `https://ytdlpyton.nvlgroup.my.id/download/?url=${encodeURIComponent(link)}&resolution=${resolution}&mode=url`;
+      const { data } = await axios.get(apiUrl);
+
+      if (!data.download_url) throw "Tidak ada URL dari API utama";
+
+      const buffer = await getBuffer(data.download_url);
+      await hydro.sendMessage(m.chat, {
+        document: buffer,
+        fileName: `${data.title}.mp4`,
+        mimetype: 'video/mp4'
+      }, { quoted: m });
+
+    } catch (err) {
+      console.log("❌ API utama gagal. Mencoba fallback...");
+
+      try {
+        // === Fallback ke API KEDUA ===
+        const headers = {
+          "accept": "*/*",
+          "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+          "sec-ch-ua": "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "Referer": "https://id.ytmp3.mobi/",
+          "Referrer-Policy": "strict-origin-when-cross-origin"
+        };
+        const initial = await fetch(`https://d.ymcdn.org/api/v1/init?p=y&23=1llum1n471&_=${Math.random()}`, { headers });
+        const init = await initial.json();
+
+        const id = link.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/|.*embed\/))([^&?/]+)/)?.[1];
+        const convertURL = `${init.convertURL}&v=${id}&f=mp4&_=${Math.random()}`;
+        const converts = await fetch(convertURL, { headers });
+        const convert = await converts.json();
+
+        let info = {};
+        for (let i = 0; i < 3; i++) {
+          const j = await fetch(convert.progressURL, { headers });
+          info = await j.json();
+          if (info.progress == 3) break;
+        }
+
+        const fallback = {
+          url: convert.downloadURL,
+          title: info.title || "yt-video"
+        };
+
+        await hydro.sendMessage(m.chat, {
+          document: { url: fallback.url },
+          mimetype: 'video/mp4',
+          fileName: `${fallback.title}.mp4`
+        }, { quoted: m });
+
+      } catch (err2) {
+        console.log("❌ API cadangan juga gagal:", err2);
+        return m.reply("Maaf, video gagal diunduh. Coba link atau resolusi lain.");
+      }
+    }
+  }
 }
-const result = {
-    url: convert.downloadURL,
-    title: info.title
-}
-await hydro.sendMessage(m.chat, { video: { url: result.url } }, { quoted: m });
-} catch {
-  reply('aduh kak error nieh..')
-}
-}
-break
+break;
 case 'songs':
 case 'play': {
   if (!text) {
@@ -32350,26 +32458,24 @@ case 'pin':
 case 'pinterest': {
   if (!text) return m.reply(`Contoh: ${prefix}pin christy jkt48`)
   try {
-    const data = await fetchJson(`https://www.archive-ui.biz.id/search/pinterest?q=${encodeURIComponent(text)}`)
-    if (!data.result || data.result.length === 0) return m.reply('Gambar tidak ditemukan.')
+    const { data } = await axios.get(`https://api.siputzx.my.id/api/s/pinterest?query=${encodeURIComponent(text)}&type=image`)
+    if (!data.status || !data.data || data.data.length === 0) return m.reply('Gambar tidak ditemukan.')
+
     let index = isNaN(args[1]) ? 0 : parseInt(args[1])
-    if (index >= data.result.length) return m.reply('Sudah mencapai gambar terakhir.')
+    if (index >= data.data.length) return m.reply('Sudah mencapai gambar terakhir.')
 
-    let hasil = data.result[index].image_hd
-
+    let hasil = data.data[index].image_url
     const buttons = [
       {
         buttonId: `${prefix}pin ${text} ${index + 1}`,
-        buttonText: {
-          displayText: 'Next'
-        },
+        buttonText: { displayText: 'Next' },
         type: 1
       }
     ]
 
     await hydro.sendMessage(m.chat, {
       image: { url: hasil },
-      caption: `Menampilkan gambar ke *${index + 1}* dari *${data.result.length}*.\nKlik tombol *Next* untuk lanjut.`,
+      caption: `Menampilkan gambar ke *${index + 1}* dari *${data.data.length}*.\nKlik tombol *Next* untuk lanjut.`,
       footer: null,
       buttons: buttons,
       headerType: 1,
