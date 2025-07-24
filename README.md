@@ -41,16 +41,14 @@ npm install
 npm update
 ```
 ---
-## For Termux/Ubuntu/SSH User
-```bash
-pkg update && pkg upgrade
-pkg install git
-pkg install nodejs
-pkg install ffmpeg
-pkg install imagemagick
-git clone https://github.com/AhmadAkbarID/hydro
-cd hydro
-npm install
+## For Panel Pterodactyl User
+```step
+download sc hydro 
+ke panelmu dan ke files
+upload sc hydro dan extract
+ke isi file dan centang semua
+pilih move dan ketik "../"
+start panel dengan node 22
 ```
 
 [ RECOMMENDED INSTALL ON VPS ]
