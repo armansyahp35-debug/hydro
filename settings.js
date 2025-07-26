@@ -60,6 +60,7 @@ global.docker2 = "ghcr.io/cekilpedia/vip:sanzubycekil" //jangan di ubah
 global.eggsnya2 = '15' // id eggs yang dipakai
 global.location2 = '1' // id location
 //===========================//
+global.virtuSimApiKey = 'APIKEYMU'
 global.domainotp = "https://claudeotp.com/api"
 global.apikeyotp = "a395f97fe99f4fad0e790d10af518b9a"
 global.eggsnya = '15' // id eggs yang dipakai
