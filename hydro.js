@@ -99,6 +99,11 @@ let _left = JSON.parse(fs.readFileSync('./database/left.json'))
 let set_proses = JSON.parse(fs.readFileSync('./database/set_proses.json'))
 let set_done = JSON.parse(fs.readFileSync('./database/set_done.json'))
 let db_respon_list = JSON.parse(fs.readFileSync('./database/list-message.json'));
+let autoCloseDB = JSON.parse(fs.readFileSync('./database/autoco.json'));
+let autoCloseLastAction = {}; // Penanda eksekusi terakhir grup
+function saveAutoClose() {
+    fs.writeFileSync('./database/autoco.json', JSON.stringify(autoCloseDB, null, 2));
+}
 const DB_FILE = './database/database.json';
 function loadDB() {
   if (fs.existsSync(DB_FILE)) {
@@ -858,8 +863,8 @@ mentionedJid:[sender],
 forwardingScore: 999,
 isForwarded: true,
 "externalAdReply": {
-"showAdAttribution": true,
-"containsAutoReply": true,
+"showAdAttribution": false,
+"containsAutoReply": false,
 "title": `${global.botname}`,
 "body": `${HydroWaktu} ${pushname} 👋🏻`,
 "previewType": "VIDEO",
@@ -2336,40 +2341,92 @@ if (
   budy.startsWith('https://t.tiktok.com/') || 
   budy.startsWith('https://vm.tiktok.com/')
 ) {
-  hydro.sendMessage(m.chat, { react: { text: `⏱️`, key: m.key }})
+  hydro.sendMessage(m.chat, { react: { text: `⏱️`, key: m.key }});
+
   try {
-    const data = await fetchJson(`https://api.tiklydown.eu.org/api/download?url=${encodeURIComponent(budy)}`);
-    const vidnya = data?.video?.noWatermark;
-    if (vidnya) {
-      const caption = `\`✨━━━〔 🎞️ 𝐓𝐢𝐤𝐭𝐨𝐤 𝐃𝐋 〕━━━✨\`
-👤 Usᴇʀ ᴛᴛ : *${data.author?.name ?? 'Tidak diketahui'} (@${data.author?.unique_id ?? 'Tidak diketahui'})*
-👍 Lɪᴋᴇs : *${data.stats?.likeCount ?? 'Tidak diketahui'}*
-💬 Cᴏᴍᴍᴇɴᴛs : *${data.stats?.commentCount ?? 'Tidak diketahui'}*
-▶️ Pʟᴀʏs : *${data.stats?.playCount ?? 'Tidak diketahui'}*
-💾 Sᴀᴠᴇs : *${data.stats?.saveCount ?? 'Tidak diketahui'}*
-🎯 Tɪᴛʟᴇ : *${data.title ?? 'Tidak diketahui'}*
+    // API 1: TiklyDown
+    const data1 = await fetchJson(`https://api.tiklydown.eu.org/api/download?url=${encodeURIComponent(budy)}`);
+    const stats = data1.stats || {};
+    const author = data1.author || {};
+    const title = data1.title || '-';
 
-\`⏤͟͟͞͞  ${botname}\``;
+    if (data1.video && data1.video.noWatermark) {
+      // Jika video ditemukan
+      let cap = `✨━━━〔 🎞️ 𝐓𝐢𝐤𝐭𝐨𝐤 𝐃𝐋 〕━━━✨
+👤 User: *${author.name || '-'} (@${author.unique_id || '-'})*
+❤️ Likes: *${stats.likeCount || '-'}*
+💬 Comments: *${stats.commentCount || '-'}*
+🔄 Shares: *${stats.shareCount || '-'}*
+▶️ Plays: *${stats.playCount || '-'}*
+💾 Saves: *${stats.saveCount || '-'}*
+🎯 Title: *${title}*
 
-      await hydro.sendMessage(
-        m.chat, 
-        { caption, video: { url: vidnya } }, 
-        { quoted: m }
-      );
+⏤͟͟͞͞  ${botname}`;
+
+      await hydro.sendMessage(m.chat, {
+        video: { url: data1.video.noWatermark },
+        caption: cap
+      }, { quoted: m });
+
+    } else if (data1.images && data1.images.length > 0) {
+      // Jika gambar (photo mode)
+      for (let i = 0; i < data1.images.length; i++) {
+        let img = data1.images[i];
+        let cap = data1.images.length === 1 ? `🖼️ *Tiktok Photo*\n🎯 Title: *${title}*` : `🖼️ Gambar ke-${i + 1}`;
+
+        await hydro.sendMessage(m.chat, {
+          image: { url: img.url },
+          caption: cap
+        }, { quoted: m });
+      }
+
     } else {
-      const nyut = await HydroTTDL(budy);
-      await hydro.sendMessage(
-        m.chat, 
-        {
-          caption: `Judul: ${nyut.title ?? 'Tidak diketahui'}\nDeskripsi: ${nyut.description ?? 'Tidak diketahui'}`,
-          video: { url: nyut.downloadLink || nyut.hdDownloadLink },
-        },
-        { quoted: m }
-      );
+      // API 1 gagal atau kosong, fallback API 2
+      const data2 = await fetchJson(`https://ytdlpyton.nvlgroup.my.id/tiktok?url=${encodeURIComponent(budy)}`);
+      
+      if (data2.video_url) {
+        let cap2 = `✨━━━〔 🎞️ 𝐓𝐢𝐤𝐭𝐨𝐤 𝐃𝐋 〕━━━✨
+👤 User: *${data2.author} (@${data2.username})*
+❤️ Likes: *${data2.like_count}*
+💬 Comments: *${data2.comment_count}*
+🔄 Shares: *${data2.share_count}*
+▶️ Plays: *${data2.play_count}*
+🎯 Title: *${data2.title}*
+
+⏤͟͟͞͞  ${botname}`;
+
+        await hydro.sendMessage(m.chat, {
+          video: { url: data2.video_url },
+          caption: cap2
+        }, { quoted: m });
+
+      } else if (data2.slide_images && data2.slide_images.length > 0) {
+        // Jika slide photo mode di API 2
+        for (let i = 0; i < data2.slide_images.length; i++) {
+          let img = data2.slide_images[i];
+          let cap = data2.slide_images.length === 1 ? `🖼️ *Tiktok Photo*\n🎯 Title: *${data2.title}*` : `🖼️ Gambar ke-${i + 1}`;
+
+          await hydro.sendMessage(m.chat, {
+            image: { url: img },
+            caption: cap
+          }, { quoted: m });
+        }
+
+      } else if (data2.thumbnail) {
+        // Hanya thumbnail yang tersedia
+        await hydro.sendMessage(m.chat, {
+          image: { url: data2.thumbnail },
+          caption: `🖼️ *Tiktok Thumbnail*\n🎯 Title: *${data2.title}*`
+        }, { quoted: m });
+
+      } else {
+        reply('Maaf, tidak bisa mendeteksi media pada link tersebut.');
+      }
     }
+
   } catch (error) {
     console.error(error);
-    reply('Maaf, terjadi kesalahan saat memproses permintaan Anda.');
+    reply('Terjadi kesalahan saat memproses link TikTok.');
   }
 }
 //=========================================\\
@@ -2446,28 +2503,123 @@ if (reactpsn) {
             }
         })
 }
-        if (Antilinkgc) {
-        if (budy.match(`chat.whatsapp.com`)) {
-        if (!isBotAdmins) return reply('_Bot Harus Menjadi Admin Terlebih Dahulu_')
-        let gclink = (`https://chat.whatsapp.com/`)
-        let isLinkThisGc = new RegExp(gclink, 'i')
-        let isgclink = isLinkThisGc.test(m.text)
-        if (isAdmins) return hydro.sendMessage(m.chat, {text: `\`\`\`「 Group Link Detected 」\`\`\`\n\n Admin mengirimkan link, admin mah bebas memposting link apapun`})
-        if (Ahmad) return hydro.sendMessage(m.chat, {text: `\`\`\`「 Group Link Detected 」\`\`\`\n\n owner telah mengirim tautan, owner bebas memposting tautan apa pun`})
-        kice = m.sender
-        await hydro.sendMessage(m.chat,
-			    {
-			        delete: {
-			            remoteJid: m.chat,
-			            fromMe: false,
-			            id: m.key.id,
-			            participant: m.key.participant
-			        }
-			    })
-			    await hydro.groupParticipantsUpdate(m.chat, [kice], 'remove')
-        hydro.sendMessage(m.chat, {text:`\`\`\`「 Tautan Terdeteksi 」\`\`\`\n\n@${m.sender.split("@")[0]} telah mengirimkan tautan dan berhasil dihapus`,contextInfo:{mentionedJid:[m.sender]}})
-            }            
+// ─── ANTILINK GRUP ─────────────────────────────────────────
+if (Antilinkgc) {
+  const regex = /https:\/\/chat\.whatsapp\.com\/([0-9A-Za-z]{20,24})/i;
+  const match = budy.match(regex);
+
+  if (match) {
+    const groupCodeFromLink = match[1];
+
+    try {
+      const thisGroupCode = await hydro.groupInviteCode(m.chat);
+      const isLinkThisGroup = groupCodeFromLink === thisGroupCode;
+
+      if (isLinkThisGroup) {
+        return hydro.sendMessage(m.chat, {
+          text: `🔗 *Tautan Grup Ini Terdeteksi!*\n\n@${m.sender.split("@")[0]} membagikan tautan grup *ini sendiri*, tidak ada tindakan diambil ✅`,
+          contextInfo: { mentionedJid: [m.sender] }
+        });
+      }
+
+      if (!isBotAdmins) return reply('⚠️ Bot harus menjadi admin untuk menegakkan aturan tautan.');
+      if (isAdmins || Ahmad) return;
+
+      // Hapus pesan link asing
+      await hydro.sendMessage(m.chat, {
+        delete: {
+          remoteJid: m.chat,
+          fromMe: false,
+          id: m.key.id,
+          participant: m.key.participant
         }
+      });
+
+      const warningsFile = './database/antilinkgc-warning.json';
+      let warningDb = fs.existsSync(warningsFile) ? JSON.parse(fs.readFileSync(warningsFile)) : {};
+
+      if (!warningDb[m.chat]) warningDb[m.chat] = {};
+      if (!warningDb[m.chat][m.sender]) warningDb[m.chat][m.sender] = 0;
+
+      warningDb[m.chat][m.sender] += 1;
+      const warnCount = warningDb[m.chat][m.sender];
+
+      if (warnCount >= 3) {
+        await hydro.groupParticipantsUpdate(m.chat, [m.sender], 'remove');
+        await hydro.sendMessage(m.chat, {
+          text: `🚫 *PELANGGARAN BERULANG!*\n\n@${m.sender.split("@")[0]} telah membagikan tautan grup *asing* sebanyak *3 kali*.\n\n📤 Telah dikeluarkan dari grup.`,
+          contextInfo: { mentionedJid: [m.sender] }
+        });
+
+        warningDb[m.chat][m.sender] = 0; // Reset setelah kick
+      } else {
+        fs.writeFileSync(warningsFile, JSON.stringify(warningDb, null, 2));
+        await hydro.sendMessage(m.chat, {
+          text: `⚠️ *TAUTAN TERDETEKSI!*\n\n@${m.sender.split("@")[0]} membagikan tautan grup *asing*. Ini adalah peringatan ke *${warnCount}/3*.\n\n🚨 Jika mencapai 3 peringatan, kamu akan dikeluarkan!`,
+          contextInfo: { mentionedJid: [m.sender] }
+        });
+      }
+    } catch (err) {
+      console.error('AntilinkGC error:', err);
+    }
+  }
+}
+
+setInterval(async () => {
+    let now = moment.tz('Asia/Jakarta').format('HH:mm');
+
+    for (let groupId in autoCloseDB) {
+        let config = autoCloseDB[groupId];
+        if (!config.status) continue;
+
+        try {
+            if (!autoCloseLastAction[groupId]) {
+                autoCloseLastAction[groupId] = { tutup: '', buka: '' };
+            }
+
+            if (now === config.tutup && autoCloseLastAction[groupId].tutup !== now) {
+                await hydro.groupSettingUpdate(groupId, 'announcement');
+                await hydro.sendMessage(groupId, {
+                    text: `🌙 *Selamat Malam Semua!*\nGrup ini telah *ditutup otomatis* pada *${config.tutup} WIB*.\n\n🛌 Waktunya istirahat~`
+                });
+                autoCloseLastAction[groupId].tutup = now;
+                console.log(`🔒 Grup ${groupId} ditutup [${now}]`);
+            }
+
+            if (now === config.buka && autoCloseLastAction[groupId].buka !== now) {
+                await hydro.groupSettingUpdate(groupId, 'not_announcement');
+                await hydro.sendMessage(groupId, {
+                    text: `☀️ *Selamat Pagi!*\nGrup ini telah *dibuka otomatis* pada *${config.buka} WIB*.\n\n💬 Selamat ngobrol dan semangat harinya! 🌻`
+                });
+                autoCloseLastAction[groupId].buka = now;
+                console.log(`🔓 Grup ${groupId} dibuka [${now}]`);
+            }
+
+        } catch (e) {
+            console.error(`❗ Gagal update grup ${groupId}: ${e.message}`);
+        }
+    }
+}, 60 * 1000); // per menit
+// ─── ANTISPAM (3 Detik Perintah, Kecuali Owner) ─────────────
+if (m.text && m.text.startsWith(prefix)) {
+  const cooldownUser = global.cooldownUser || (global.cooldownUser = new Map())
+  const userId = m.sender
+  const now = Date.now()
+  const cooldownTime = 3 * 1000 // 3 detik
+
+  if (!Ahmad) {
+    if (cooldownUser.has(userId)) {
+      const lastCommandTime = cooldownUser.get(userId)
+      const remaining = cooldownTime - (now - lastCommandTime)
+
+      if (remaining > 0) {
+        return replyhydro(`⏱️ Mohon tunggu ${Math.ceil(remaining / 1000)} detik sebelum menggunakan perintah lagi!`)
+      }
+    }
+
+    cooldownUser.set(userId, now)
+  }
+}
 //Antichlink
              if (Antilinkch) {
 
@@ -10887,6 +11039,213 @@ case  'd25': {
              else reply(`gagal membuat subdomain\nMsg: ${e['error']}`)
            }); }
 break
+case 'ttsba': {
+  if (!text) return replyhydro(`Masukkan teks dan karakter!\n\nContoh: ${prefix + command} halo|momoi`);
+
+  const translate = require('translate-google-api');
+  const ws = require('ws');
+
+  class BlueArchive {
+    voice = async function voice(text, model = "Airi", speed = 1.2) {
+      return new Promise(async (resolve, reject) => {
+        try {
+          if (!text || text.length >= 500) throw new Error(`Masukkan teks yang valid dan tidak lebih dari 500 karakter.`);
+          if (speed && (speed < 0.1 || speed > 2)) speed = 2;
+          model = "JP_" + model;
+          const base_url = "https://ori-muchim-bluearchivetts.hf.space/";
+          const session_hash = this.generateSession();
+          const socket = new ws("wss://ori-muchim-bluearchivetts.hf.space/queue/join");
+
+          socket.on("message", (data) => {
+            const d = JSON.parse(data.toString("utf8"));
+            switch (d.msg) {
+              case "send_hash":
+                socket.send(JSON.stringify({ fn_index: 0, session_hash }));
+                break;
+              case "send_data":
+                socket.send(JSON.stringify({ fn_index: 0, session_hash, data: [text, model, speed] }));
+                break;
+              case "process_completed":
+                const o = d.output;
+                const name = o.data[1]?.name;
+                socket.close();
+                return resolve({
+                  result: {
+                    duration: +o.duration.toFixed(2),
+                    url: base_url + "file=" + name,
+                  },
+                });
+            }
+          });
+        } catch (e) {
+          return reject(`Gagal memproses voice: ${e.message}`);
+        }
+      });
+    };
+
+    generateSession = function () {
+      return Math.random().toString(36).substring(2);
+    };
+  }
+
+  try {
+    let [teks, char, sped] = text.split('|');
+    if (!teks || !char) return replyhydro(`Contoh: ${prefix + command} halo dunia|momoi`);
+
+    const suppVoice = [ 'airi','akane','akari','ako','aris','arona','aru','asuna','atsuko','ayane','azusa','cherino','chihiro','chinatsu','chise','eimi','erica','fubuki','fuuka','hanae','hanako','hare','haruka','haruna','hasumi','hibiki','hihumi','himari','hina','hinata','hiyori','hoshino','iori','iroha','izumi','izuna','juri','kaede','karin','kayoko','kazusa','kirino','koharu','kokona','kotama','kotori','main','maki','mari','marina','mashiro','michiru','midori','miku','mimori','misaki','miyako','miyu','moe','momoi','momoka','mutsuki','NP0013','natsu','neru','noa','nodoka','nonomi','pina','rin','saki','saori','saya','sena','serika','serina','shigure','shimiko','shiroko','shizuko','shun','ShunBaby','sora','sumire','suzumi','tomoe','tsubaki','tsurugi','ui','utaha','wakamo','yoshimi','yuuka','yuzu','zunko' ];
+
+    if (!suppVoice.includes(char.toLowerCase())) {
+      const txtVoice = suppVoice.map(v => `> - ${v}`).join('\n');
+      return replyhydro(`*Karakter tidak ditemukan!*\nBerikut list char yang didukung:\n${txtVoice}`);
+    }
+
+    replyhydro('⏳ Sedang memproses suara...');
+    const pedo = new BlueArchive();
+    const translated = await translate(teks, { to: 'ja', autoCorrect: false });
+    const ba = await pedo.voice(translated[0], char.charAt(0).toUpperCase() + char.slice(1).toLowerCase(), sped || 1);
+
+    hydro.sendMessage(m.chat, {
+      audio: { url: ba.result.url },
+      mimetype: 'audio/mpeg',
+      ptt: true
+    }, { quoted: m });
+
+  } catch (e) {
+    console.error(e);
+    replyhydro('Terjadi kesalahan saat mengubah teks menjadi suara.');
+  }
+  break;
+}
+case 'userfinder': case 'userfind': {
+   if (!text) return replyhydro('`Contoh :` *userfind focabar*')
+async function checkSocialMedia(username) {
+
+const platforms = {
+  tiktok: `https://www.tiktok.com/@${username}`,
+  youtube: `https://www.youtube.com/${username}`,
+  twitter: `https://twitter.com/${username}`,
+  instagram: `https://www.instagram.com/${username}`,
+  facebook: `https://www.facebook.com/${username}`,
+  linkedin: `https://www.linkedin.com/in/${username}`,
+  snapchat: `https://www.snapchat.com/add/${username}`,
+  pinterest: `https://www.pinterest.com/${username}`,
+  reddit: `https://www.reddit.com/user/${username}`,
+  tumblr: `https://${username}.tumblr.com`,
+  github: `https://github.com/${username}`,
+  medium: `https://medium.com/@${username}`,
+  deviantart: `https://www.deviantart.com/${username}`,
+  soundcloud: `https://soundcloud.com/${username}`,
+  twitch: `https://www.twitch.tv/${username}`,
+  behance: `https://www.behance.net/${username}`,
+  dribbble: `https://dribbble.com/${username}`,
+  vimeo: `https://vimeo.com/${username}`,
+  discord: `https://discord.com/users/${username}`,
+  quora: `https://www.quora.com/profile/${username}`,
+  slack: `https://${username}.slack.com`,
+  spotify: `https://open.spotify.com/user/${username}`,
+  stackoverflow: `https://stackoverflow.com/users/${username}`,
+  goodreads: `https://www.goodreads.com/${username}`,
+  flickr: `https://www.flickr.com/people/${username}`,
+  weheartit: `https://weheartit.com/${username}`,
+  mix: `https://mix.com/${username}`,
+  kickstarter: `https://www.kickstarter.com/profile/${username}`,
+  patreon: `https://www.patreon.com/${username}`,
+  producthunt: `https://www.producthunt.com/@${username}`,
+  myspace: `https://myspace.com/${username}`,
+  telegram: `https://t.me/${username}`,
+  clubhouse: `https://www.clubhouse.com/@${username}`,
+  kakaotalk: `https://open.kakao.com/${username}`,
+  line: `https://line.me/${username}`,
+  douyin: `https://www.douyin.com/@${username}`,
+  sinaweibo: `https://weibo.com/${username}`,
+  baidu: `https://tieba.baidu.com/home/main?id=${username}`,
+  whatsapp: `https://wa.me/${username}`,
+  messenger: `https://m.me/${username}`,
+  viber: `viber://chat?number=${username}`,
+  signal: `https://signal.me/#p/${username}`,
+  vk: `https://vk.com/${username}`,
+  ok: `https://ok.ru/${username}`,
+  xing: `https://www.xing.com/profile/${username}`,
+  renren: `http://www.renren.com/${username}`,
+  qq: `https://user.qzone.qq.com/${username}`,
+  meetup: `https://www.meetup.com/members/${username}`,
+  ello: `https://ello.co/${username}`,
+  mastodon: `https://mastodon.social/@${username}`,
+  gab: `https://gab.com/${username}`,
+  parler: `https://parler.com/${username}`,
+  rumble: `https://rumble.com/user/${username}`,
+  odysee: `https://odysee.com/@${username}`,
+  mixcloud: `https://www.mixcloud.com/${username}`,
+  dailymotion: `https://www.dailymotion.com/${username}`,
+  peertube: `https://peertube.social/accounts/${username}`,
+  reverbnation: `https://www.reverbnation.com/${username}`,
+  bandsintown: `https://bandsintown.com/${username}`,
+  wattpad: `https://www.wattpad.com/user/${username}`,
+  archive: `https://archive.org/details/@${username}`,
+  taringa: `https://www.taringa.net/${username}`,
+  livejournal: `https://${username}.livejournal.com`,
+  gaiaonline: `https://www.gaiaonline.com/profiles/${username}`,
+  secondlife: `https://my.secondlife.com/${username}`,
+  habbo: `https://www.habbo.com/${username}`,
+  neopets: `http://www.neopets.com/userlookup.phtml?user=${username}`,
+  pixiv: `https://www.pixiv.net/en/users/${username}`,
+  artstation: `https://www.artstation.com/${username}`,
+  coroflot: `https://www.coroflot.com/${username}`,
+  cargocollective: `https://${username}.cargocollective.com`,
+  aboutme: `https://about.me/${username}`,
+  devto: `https://dev.to/${username}`,
+  hackerrank: `https://www.hackerrank.com/${username}`,
+  codepen: `https://codepen.io/${username}`,
+  jsfiddle: `https://jsfiddle.net/user/${username}`,
+  gumroad: `https://gumroad.com/${username}`,
+  itch: `https://itch.io/profile/${username}`,
+  kick: `https://kick.com/${username}`,
+  letterboxd: `https://letterboxd.com/${username}`,
+  taptap: `https://www.taptap.io/${username}`,
+  badoo: `https://badoo.com/profile/${username}`,
+  okcupid: `https://www.okcupid.com/profile/${username}`,
+  couchsurfing: `https://www.couchsurfing.com/people/${username}`,
+  zorpia: `https://www.zorpia.com/${username}`,
+  tripadvisor: `https://www.tripadvisor.com/members/${username}`,
+  opentable: `https://www.opentable.com/profile/${username}`,
+  airbnb: `https://www.airbnb.com/users/show/${username}`,
+  poshmark: `https://poshmark.com/closet/${username}`,
+  depop: `https://www.depop.com/${username}`,
+  stocktwits: `https://stocktwits.com/${username}`,
+  etsy: `https://www.etsy.com/people/${username}`,
+  tradersync: `https://www.tradersync.com/${username}`,
+  roblox: `https://www.roblox.com/users/${username}/profile`,
+  minecraft: `https://namemc.com/profile/${username}`,
+  epicgames: `https://www.epicgames.com/id/${username}`,
+  steam: `https://steamcommunity.com/id/${username}`,
+  battlelog: `https://battlelog.battlefield.com/bf3/user/${username}`,
+  psn: `https://my.playstation.com/${username}`,
+  xbox: `https://account.xbox.com/en-us/Profile?gamerTag=${username}`
+};
+
+    const results = [];
+
+    for (const [platform, url] of Object.entries(platforms)) {
+        try {
+            await axios.head(url);
+            results.push({ platform, available: true, link: url });
+        } catch {
+            results.push({ platform, available: false, link: url });
+        }
+    }
+
+    return results;
+}
+const result = await checkSocialMedia(text);
+await replyhydro("tunggu 1/2 menit soalnya emang lama nunggunya")
+let teks = `- Social Media Analysis\n\n`
+                for (let i of result) {
+                    teks += `*Platforms* : ${i.platform}\n*Available* : ${i.available}\n*Link* : ${i.link}\n\n`
+                }
+
+await replyhydro(teks)
+}
+break
 
 case  'd26': {
         if (!Ahmad) return reply(mess.only.owner)
@@ -12110,40 +12469,89 @@ break
 case 'tiktok':
 case 'tt': {
   if (!text) return replyhydro(`Contoh: ${prefix + command} link`);
-hydro.sendMessage(m.chat, { react: { text: `⏱️`, key: m.key }})
-try {
-  const data = await fetchJson(`https://api.tiklydown.eu.org/api/download?url=${encodeURIComponent(text)}`);
-    const vidnya = data?.video?.noWatermark;
-    if (vidnya) {
-      const caption = `\`✨━━━〔 🎞️ 𝐓𝐢𝐤𝐭𝐨𝐤 𝐃𝐋 〕━━━✨\`
-👤 Usᴇʀ ᴛᴛ : *${data.author?.name ?? 'Tidak diketahui'} (@${data.author?.unique_id ?? 'Tidak diketahui'})*
-👍 Lɪᴋᴇs : *${data.stats?.likeCount ?? 'Tidak diketahui'}*
-💬 Cᴏᴍᴍᴇɴᴛs : *${data.stats?.commentCount ?? 'Tidak diketahui'}*
-▶️ Pʟᴀʏs : *${data.stats?.playCount ?? 'Tidak diketahui'}*
-💾 Sᴀᴠᴇs : *${data.stats?.saveCount ?? 'Tidak diketahui'}*
-🎯 Tɪᴛʟᴇ : *${data.title ?? 'Tidak diketahui'}*
+  hydro.sendMessage(m.chat, { react: { text: `⏱️`, key: m.key }});
 
-\`⏤͟͟͞͞  ${botname}\``;
-      await hydro.sendMessage(
-        m.chat, 
-        { caption, video: { url: vidnya } }, 
-        { quoted: m }
-      );
+  try {
+    // API 1: TiklyDown
+    const data1 = await fetchJson(`https://api.tiklydown.eu.org/api/download?url=${encodeURIComponent(text)}`);
+    const stats = data1.stats || {};
+    const author = data1.author || {};
+    const title = data1.title || '-';
+
+    if (data1.video && data1.video.noWatermark) {
+      // Jika video ditemukan
+      let cap = `🎥 *Tiktok Video*
+👤 Author: *${author.name || '-'} (@${author.unique_id || '-'})*
+❤️ Likes: *${stats.likeCount || '-'}*
+💬 Comments: *${stats.commentCount || '-'}*
+🔄 Shares: *${stats.shareCount || '-'}*
+▶️ Plays: *${stats.playCount || '-'}*
+💾 Saves: *${stats.saveCount || '-'}*
+🎯 Title: *${title}*`;
+
+      await hydro.sendMessage(m.chat, {
+        video: { url: data1.video.noWatermark },
+        caption: cap
+      }, { quoted: m });
+
+    } else if (data1.images && data1.images.length > 0) {
+      // Jika gambar (photo mode)
+      for (let i = 0; i < data1.images.length; i++) {
+        let img = data1.images[i];
+        let cap = data1.images.length === 1 ? `🖼️ *Tiktok Photo*\n🎯 Title: *${title}*` : `🖼️ Gambar ke-${i + 1}`;
+
+        await hydro.sendMessage(m.chat, {
+          image: { url: img.url },
+          caption: cap
+        }, { quoted: m });
+      }
+
     } else {
-      const nyut = await HydroTTDL(text);
-      await hydro.sendMessage(
-        m.chat, 
-        {
-          caption: `Judul: ${nyut.title ?? 'Tidak diketahui'}\nDeskripsi: ${nyut.description ?? 'Tidak diketahui'}`,
-          video: { url: nyut.downloadLink || nyut.hdDownloadLink },
-        },
-        { quoted: m }
-      );
+      // API 1 gagal / tidak ada video maupun gambar, coba API 2
+      const data2 = await fetchJson(`https://ytdlpyton.nvlgroup.my.id/tiktok?url=${encodeURIComponent(text)}`);
+      
+      if (data2.video_url) {
+        let cap2 = `🎥 *Tiktok Video*
+👤 Author: *${data2.author} (@${data2.username})*
+❤️ Likes: *${data2.like_count}*
+💬 Comments: *${data2.comment_count}*
+🔄 Shares: *${data2.share_count}*
+▶️ Plays: *${data2.play_count}*
+🎯 Title: *${data2.title}*`;
+
+        await hydro.sendMessage(m.chat, {
+          video: { url: data2.video_url },
+          caption: cap2
+        }, { quoted: m });
+
+      } else if (data2.slide_images && data2.slide_images.length > 0) {
+        // Jika photo mode di API kedua
+        for (let i = 0; i < data2.slide_images.length; i++) {
+          let img = data2.slide_images[i];
+          let cap = data2.slide_images.length === 1 ? `🖼️ *Tiktok Photo*\n🎯 Title: *${data2.title}*` : `🖼️ Gambar ke-${i + 1}`;
+
+          await hydro.sendMessage(m.chat, {
+            image: { url: img },
+            caption: cap
+          }, { quoted: m });
+        }
+
+      } else if (data2.thumbnail) {
+        // Jika hanya thumbnail tersedia
+        await hydro.sendMessage(m.chat, {
+          image: { url: data2.thumbnail },
+          caption: `🖼️ *Tiktok Thumbnail*\n🎯 Title: *${data2.title}*`
+        }, { quoted: m });
+
+      } else {
+        reply('Maaf, tidak bisa mendeteksi media pada link tersebut.');
+      }
     }
-  } catch (error) {
-    console.error(error);
-    reply('Maaf, terjadi kesalahan saat memproses permintaan Anda.');
- }
+
+  } catch (err) {
+    console.log(err);
+    reply('Terjadi kesalahan saat memproses.');
+  }
 }
 break;
 //==============================================
@@ -12931,53 +13339,83 @@ case 'listgc': {
  hydro.sendTextWithMentions(m.chat, teks, m)
              }
              break
-             case 'ping': case 'botstatus': case 'statusbot': {
-const used = process.memoryUsage()
-const cpus = os.cpus().map(cpu => {
-cpu.total = Object.keys(cpu.times).reduce((last, type) => last + cpu.times[type], 0)
-			        return cpu
-})
-const cpu = cpus.reduce((last, cpu, _, { length }) => {
-last.total += cpu.total
-last.speed += cpu.speed / length
-last.times.user += cpu.times.user
-last.times.nice += cpu.times.nice
-last.times.sys += cpu.times.sys
-last.times.idle += cpu.times.idle
-last.times.irq += cpu.times.irq
-return last
-}, {
-speed: 0,
-total: 0,
-times: {
-			            user: 0,
-			            nice: 0,
-			            sys: 0,
-			            idle: 0,
-			            irq: 0
-}
-})
-let timestamp = speed()
-let latensi = speed() - timestamp
-neww = performance.now()
-oldd = performance.now()
-respon = `
-Response Speed ${latensi.toFixed(4)} _Second_ \n ${oldd - neww} _miliseconds_\n\nRuntime : ${runtime(process.uptime())}
+             case 'ping':
+case 'statusbot':
+case 'botstatus': {
+  const used = process.memoryUsage()
+  const cpus = os.cpus().map(cpu => {
+    cpu.total = Object.values(cpu.times).reduce((a, b) => a + b, 0)
+    return cpu
+  })
+  const cpu = cpus.reduce((acc, cpu, _, { length }) => {
+    acc.total += cpu.total
+    acc.speed += cpu.speed / length
+    Object.keys(cpu.times).forEach(type => {
+      acc.times[type] += cpu.times[type]
+    })
+    return acc
+  }, {
+    speed: 0,
+    total: 0,
+    times: { user: 0, nice: 0, sys: 0, idle: 0, irq: 0 }
+  })
 
-💻 Info Server
-RAM: ${formatp(os.totalmem() - os.freemem())} / ${formatp(os.totalmem())}
+  let timestamp = speed()
+  let latency = speed() - timestamp
 
-_NodeJS Memory Usaage_
-${Object.keys(used).map((key, _, arr) => `${key.padEnd(Math.max(...arr.map(v=>v.length)),' ')}: ${formatp(used[key])}`).join('\n')}
+  const runtimeFormat = (seconds) => {
+    seconds = Number(seconds)
+    const d = Math.floor(seconds / (3600 * 24))
+    const h = Math.floor((seconds % (3600 * 24)) / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    const s = Math.floor(seconds % 60)
+    return `*${d}* ☀️ Days\n*${h}* 🕐 Hours\n*${m}* ⏰ Minutes\n*${s}* ⏱️ Seconds`
+  }
 
-${cpus[0] ? `_Total CPU Usage_
-${cpus[0].model.trim()} (${cpu.speed} MHZ)\n${Object.keys(cpu.times).map(type => `- *${(type + '*').padEnd(6)}: ${(100 * cpu.times[type] / cpu.total).toFixed(2)}%`).join('\n')}
-_CPU Core(s) Usage (${cpus.length} Core CPU)_
-${cpus.map((cpu, i) => `${i + 1}. ${cpu.model.trim()} (${cpu.speed} MHZ)\n${Object.keys(cpu.times).map(type => `- *${(type + '*').padEnd(6)}: ${(100 * cpu.times[type] / cpu.total).toFixed(2)}%`).join('\n')}`).join('\n\n')}` : ''}
+  const formatp = (bytes) => `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`
+
+  let runtimeText = runtimeFormat(process.uptime())
+  let serverTime = moment().format('HH:mm:ss')
+  let tanggal = moment().format('dddd, MMMM Do YYYY')
+
+  const response = `
+╭───⏱️ *[ BOT STATUS ]* ⏱️
+│
+├ 💠 *Ping:* ${latency.toFixed(0)}ms
+├ 💠 *Detail:* ${latency.toFixed(8)}ms
+│
+├ 📈 *Uptime:*
+│  ${runtimeText}
+│
+├ 🖥️ *Server Info:*
+│  🔵 Platform : ${os.platform()}
+│  💻 OS       : ${os.type()}
+│  🧿 Hostname : ${os.hostname()}
+│  🌐 IP       : ${os.networkInterfaces()?.eth0?.[0]?.address || 'Private'}
+│  🌎 Zone     : ${Intl.DateTimeFormat().resolvedOptions().timeZone}
+│  🧠 CPU      : ${cpus[0]?.model?.trim()}
+│  🔩 Core     : ${cpus.length} Core
+│  ⚡ Speed    : ${cpu.speed === 0 ? 'Unknown' : `${cpu.speed.toFixed(2)} MHz`}
+│
+├ 📊 *RAM Usage:*
+│  🔴 Used     : ${formatp(os.totalmem() - os.freemem())}
+│  🟢 Free     : ${formatp(os.freemem())}
+│  📦 Total    : ${formatp(os.totalmem())}
+│  ⚙️ Usage    : ${((1 - os.freemem() / os.totalmem()) * 100).toFixed(1)}%
+│
+├ 🧪 *NodeJS Memory:*
+│\`\`\`
+${Object.keys(used).map(key => `${key.padEnd(12)}: ${formatp(used[key])}`).join('\n')}
+\`\`\`
+│
+├ 🗓️ *Date:* ${tanggal}
+├ 🕒 *Time:* ${serverTime}
+╰─────────────────────
 `.trim()
-replyhydro(respon)
-            }
-            break
+
+  replyhydro(response)
+}
+break
             case 'bctext': case 'broadcasttext': case 'broadcast': {
 			    if (!Ahmad) return reply(mess.only.owner)
 		            if (!q) return replyhydro(`Masukkan teks`)
@@ -14526,6 +14964,192 @@ case 'anime': {
     }
 }
 break;
+case 'virtusim': {
+  if (!Ahmad) return reply(mess.only.owner)
+  const axios = require('axios')
+  const API_KEY = global.virtuSimApiKey
+  const BASE_URL = 'https://virtusim.com/api/v2/json.php'
+
+  if (!args.length) {
+    return m.reply(`Gunakan format:
+- *virtusim saldo*
+- *virtusim deposit <nominal min 5k>*
+- *virtusim listnegara*
+- *virtusim listlayanan <negara>*
+- *virtusim buynokos <negara> <layanan>*
+- *virtusim cekotp <id>*
+- *virtusim cancelotp <id>*
+- *virtusim historyotp*`);
+  }
+
+  const pilihan = args[0].toLowerCase();
+  const arg = args.slice(1);
+
+  try {
+    switch (pilihan) {
+      case 'saldo': {
+      if (!Ahmad) return reply(mess.only.owner)
+        const res = await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=balance`)
+        const data = res.data
+        if (!data?.status) return m.reply(`🚩 Gagal mengambil data saldo.
+💬 ${res.data?.message || 'Tidak diketahui'}`)
+        return m.reply(`👤 *Akun VirtuSim*
+
+🪪 Nama: ${data.full_name}
+🔑 Username: ${data.username}
+💰 Saldo: ${data.balance} (USD ${data.usd_balance})
+📱 WhatsApp: ${data.whatsapp}`)
+      }
+      case 'deposit': {
+      if (!Ahmad) return reply(mess.only.owner)
+        if (!arg[0] || isNaN(arg[0])) return m.reply('🚩 Contoh: virtusim deposit 5000')
+        const amount = parseInt(arg[0])
+        if (amount < 5000) return m.reply('🚩 Minimal deposit 5000.')
+        const phone = '85187063723'
+        const method = 20
+        const res = await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=deposit&method=${method}&amount=${amount}&phone=${phone}`)
+        const data = res.data?.data
+        if (!data?.id || !data?.qr) return m.reply(`🚩 Gagal membuat deposit.
+💬 ${res.data?.message || 'Tidak diketahui'}`)
+        return hydro.sendMessage(m.chat, {
+          image: { url: data.qr },
+          caption: `🧾 *DEPOSIT DIBUAT*
+
+🆔 ID: ${data.id}
+💳 Metode: ${data.method}
+💰 Ditransfer: Rp${data.balance_pay.toLocaleString('id-ID')}
+📥 Masuk ke saldo: Rp${data.balance_receive.toLocaleString('id-ID')}
+
+📌 Note: ${data.note}`
+        }, { quoted: m })
+      }
+      case 'listnegara': {
+        const res = await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=list_country`)
+        if (!res.data?.status) return m.reply(`🚩 Gagal memuat negara.
+💬 ${res.data?.message || 'Tidak diketahui'}`)
+        const seen = new Set()
+        const list = res.data.data.filter(c => !seen.has(c.country_name) && seen.add(c.country_name)).map(c => `🌍 ${c.country_name}`).join('\n')
+        return m.reply(`📡 Daftar Negara:\n\n${list}`)
+      }
+      case 'listlayanan': {
+        if (!arg[0]) return m.reply('🚩 Contoh: virtusim listlayanan Indonesia')
+        const negara = arg.join(' ')
+        const res = await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=list_operator&country=${negara}`)
+        if (!res.data?.status) return m.reply(`🚩 Gagal memuat layanan.
+💬 ${res.data?.message || 'Tidak diketahui'}`)
+        const layanan = res.data.data.map(o => `• ${o}`).join('\n')
+        return m.reply(`📶 Layanan di ${negara}:\n\n${layanan}`)
+      }
+      case 'buynokos': case 'buy': {
+  if (!Ahmad) return reply(mess.only.owner)
+  if (arg.length < 2) return m.reply('🚩 Contoh: virtusim buynokos indonesia whatsapp')
+  const negara = arg[0]
+  const keyword = arg.slice(1).join(' ').toLowerCase()
+
+  const res = await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=services&country=${negara}`)
+  const layananList = Array.isArray(res.data?.data) ? res.data.data : []
+  if (!layananList.length) return m.reply(`🚩 Tidak ada layanan ditemukan.\n💬 ${res.data?.message || 'Tidak diketahui'}`)
+
+  const layananData = layananList.find(s => keyword.split(' ').every(k => s.name?.toLowerCase().includes(k)))
+  if (!layananData) return m.reply('🚩 Layanan tidak ditemukan.')
+  if (parseInt(layananData.stock) <= 0) return m.reply('🚩 Stok nomor untuk layanan ini sedang habis.')
+
+  const harga = Math.ceil(parseInt(layananData.price))
+  const saldoRes = await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=balance`)
+  const saldoVirtu = parseInt(saldoRes.data?.balance || 0)
+  if (saldoVirtu < harga) return m.reply(`🚩 Saldo tidak cukup.\n💰 Dibutuhkan: ${harga}\n💳 Saldo saat ini: ${saldoVirtu}`)
+
+  const order = await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=order&service=${layananData.id}&operator=any`)
+  if (!order.data?.data?.id) return m.reply(`🚩 Gagal membeli nomor.\n💬 ${order.data?.message || 'Tidak diketahui'}`)
+  const data = order.data.data
+
+  // Push ke DB
+  global.db.users[m.sender].nokos_orders = global.db.users[m.sender].nokos_orders || []
+  global.db.users[m.sender].nokos_orders.push({
+    id: data.id,
+    number: data.number,
+    service: layananData.name,
+    status: 'waiting',
+    created: Date.now()
+  })
+
+  m.reply(`✅ Nomor Berhasil Dibeli\n\n📱 Nomor: ${data.number}\n🆔 ID: ${data.id}\n💸 Harga: ${harga}\n📡 Layanan: ${layananData.name}\n🌍 Negara: ${negara}\n\nMenunggu OTP...`)
+
+  // Aktifkan nomor otomatis
+  await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=set_status&id=${data.id}&status=1`) // 1 = Ready
+
+  // Cek OTP otomatis
+  let statusChecked = false
+  let polling = setInterval(async () => {
+    try {
+      const status = await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=status&id=${data.id}`)
+      const sms = status.data?.data?.sms
+      if (sms && typeof sms === 'string' && sms !== '-' && !statusChecked) {
+        clearInterval(polling)
+        statusChecked = true
+        await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=set_status&id=${data.id}&status=4`) // 4 = Finish
+        return m.reply(`📬 OTP Masuk:\n\n📩 ${sms}`)
+      }
+    } catch (e) {
+      console.error('Polling error:', e)
+    }
+  }, 5000)
+
+  // Auto cancel setelah 10 menit jika tidak ada OTP
+  setTimeout(async () => {
+    if (!statusChecked) {
+      clearInterval(polling)
+      await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=set_status&id=${data.id}&status=2`) // 2 = Cancel
+      global.db.users[m.sender].nokos_orders = global.db.users[m.sender].nokos_orders.map(o =>
+        o.id == data.id ? { ...o, status: 'cancelled' } : o
+      )
+      return m.reply('⏱️ OTP tidak masuk dalam 10 menit. Order dibatalkan otomatis.')
+    }
+  }, 10 * 60 * 1000)
+
+  break
+}
+      case 'cekotp': {
+      if (!Ahmad) return reply(mess.only.owner)
+        if (!arg[0]) return m.reply('🚩 Contoh: virtusim cekotp 123456')
+        const id = arg[0]
+        const res = await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=status&id=${id}`)
+        const sms = res.data?.data?.sms
+        if (!sms || sms === '-' || sms.length === 0) return m.reply(`📭 Belum ada OTP masuk.
+💬 ${res.data?.message || 'Tidak diketahui'}`)
+        return m.reply(`📬 OTP Masuk:\n\n📩 ${sms}`)
+      }
+      case 'cancelotp': {
+      if (!Ahmad) return reply(mess.only.owner)
+        if (!arg[0]) return m.reply('🚩 Contoh: virtusim batalkanotp 123456')
+        const id = arg[0]
+        const res = await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=set_status&id=${id}&status=2`)
+        if (res.data.status) {
+          global.db.users[m.sender].nokos_orders = global.db.users[m.sender].nokos_orders.map(o => o.id == id ? { ...o, status: 'cancelled' } : o)
+          return m.reply('✅ Order berhasil dibatalkan.')
+        } else return m.reply(`🚩 Gagal membatalkan order.
+💬 ${res.data?.message || 'Tidak diketahui'}`)
+      }
+      case 'historyotp': {
+      if (!Ahmad) return reply(mess.only.owner)
+        const res = await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=order_history`)
+        const list = Array.isArray(res.data?.data) ? res.data.data : []
+        if (!list.length) return m.reply(`🚩 Tidak ada riwayat ditemukan.
+💬 ${res.data?.message || 'Tidak diketahui'}`)
+        const history = list.map(o => `Id: ${o.id}\nOrder: ${o.service_name}\nNomor: ${o.data}\nHarga: ${o.price}\nSMS: ${o.sms && o.sms !== '-' ? o.sms : 'Belum ada'}\nStatus: ${o.status}\nRefund: ${o.is_refund === '1' ? 'Refund' : 'No Refund'}\nWaktu: ${o.created_at}`).join('\n\n──────────────────\n\n')
+        return m.reply(`📜 *Riwayat OTP:*\n\n${history}`)
+      }
+      default: {
+        return m.reply('🚩 Pilihan tidak dikenal. Ketik *virtusim* untuk bantuan.');
+      }
+    }
+  } catch (e) {
+    console.error(e)
+    return m.reply(`🚩 Error:\n${e.message}`)
+  }
+  break
+}
+
 case 'megadl': {
     if (!args[0]) return m.reply("Masukkan link!");
 
@@ -17527,6 +18151,100 @@ Ketik *nyerah* untuk menyerah
     ]
 }
 break
+case 'autoco': {
+    if (!m.isGroup) return replyhydro("❗ *Fitur ini hanya bisa digunakan di grup.*");
+    if (!isAdmins && !Ahmad) return replyhydro("🔒 *Perintah ini hanya bisa digunakan oleh admin grup atau owner bot.*");
+
+    const groupId = m.chat;
+
+    // Buat data default jika belum ada
+    if (!autoCloseDB[groupId]) {
+        autoCloseDB[groupId] = {
+            status: false,
+            tutup: '',
+            buka: ''
+        };
+    }
+
+    // ✅ .autoco on
+    if (args[0] === 'on') {
+        if (!autoCloseDB[groupId].tutup || !autoCloseDB[groupId].buka) {
+            autoCloseDB[groupId].status = false;
+            saveAutoClose();
+            return replyhydro(`⚠️ *Jadwal belum disetel!*\n\nGunakan format:\n.autoco set 22:00|06:00`);
+        }
+
+        autoCloseDB[groupId].status = true;
+        saveAutoClose();
+        return replyhydro(`✅ *Auto Close/Open Diaktifkan!*\n\n📌 Jadwal Saat Ini:\n🔒 Tutup: *${autoCloseDB[groupId].tutup} WIB*\n🔓 Buka: *${autoCloseDB[groupId].buka} WIB*`);
+    }
+
+    // 🔴 .autoco off
+    else if (args[0] === 'off') {
+        autoCloseDB[groupId].status = false;
+        saveAutoClose();
+        return replyhydro(`🔴 *Auto Close/Open Dinonaktifkan!*`);
+    }
+
+    // 🗑️ .autoco del
+    else if (args[0] === 'del') {
+        if (!autoCloseDB[groupId]) {
+            return replyhydro(`⚠️ *Grup ini belum memiliki data Auto Close.*`);
+        }
+        delete autoCloseDB[groupId];
+        saveAutoClose();
+        return replyhydro(`🗑️ *Data Auto Close grup ini berhasil dihapus!*\n🔕 Auto Close otomatis dinonaktifkan.`);
+    }
+
+    // 🕓 .autoco set 22:00|06:00
+    else if (args[0] === 'set') {
+        if (!args[1] || !args[1].includes('|')) {
+            return replyhydro(`❗ *Format salah!*\n\nContoh:\n.autoco set 22:00|06:00`);
+        }
+
+        const [jamTutup, jamBuka] = args[1].split('|').map(x => x.trim());
+        const isValidTime = str => /^([01]\d|2[0-3]):([0-5]\d)$/.test(str);
+
+        if (!isValidTime(jamTutup) || !isValidTime(jamBuka)) {
+            return replyhydro(`⚠️ *Format jam salah!*\nGunakan format 24 jam, contoh:\n.autoco set 22:00|06:00`);
+        }
+
+        const jadwalLama = `🔒 Tutup: *${autoCloseDB[groupId].tutup || '-'}*\n🔓 Buka: *${autoCloseDB[groupId].buka || '-' }*`;
+
+        autoCloseDB[groupId].tutup = jamTutup;
+        autoCloseDB[groupId].buka = jamBuka;
+
+        try {
+            saveAutoClose();
+            return replyhydro(`📆 *Jadwal Auto Close Diperbarui!*
+
+🆕 *Jadwal Baru:*
+🔒 Tutup: *${jamTutup} WIB*
+🔓 Buka: *${jamBuka} WIB*
+
+🗂️ *Jadwal Sebelumnya:*
+${jadwalLama}
+
+✅ Ketik *.autoco on* untuk mulai mengaktifkan.`);
+        } catch (e) {
+            console.error('❗ Gagal menyimpan:', e.message);
+            return replyhydro(`❌ *Gagal menyimpan jadwal!*\nPeriksa izin file autoco.json.`);
+        }
+    }
+
+    // 📋 .autoco
+    else {
+        return replyhydro(`📌 *Menu Auto Close/Open Grup*
+
+🕓 *.autoco set <tutup>|<buka>*  
+Contoh: *.autoco set 22:00|06:00*
+
+🟢 *.autoco on* – Aktifkan  
+🔴 *.autoco off* – Nonaktifkan  
+🗑️ *.autoco del* – Hapus data grup ini`);
+    }
+}
+break;
 case 'tebakanml': {
     if (!m.isGroup) return reply('❌ Fitur ini hanya bisa digunakan di grup!')
 
@@ -19654,7 +20372,7 @@ ${cooldowns}` : ''}
 *✧ mining: ${user.lastmining == 0 ? '✅': '❌'}*
 `.trim()
 
-    reply(`${caption}`)
+    replyhydro(`${caption}`)
 }
 break
 //==================================================================
@@ -21693,6 +22411,26 @@ break
 case 'intro': case 'intronya': {
  replyhydro('—————————𖤝𖣂—————————\n樂- *Kartu Intro*. . .\n𝐍𝐚𝐦𝐚:\n𝐔𝐦𝐮𝐫:\n𝐀𝐬𝐤𝐨𝐭:\n𝐊𝐞𝐥𝐚𝐬:\n𝐆𝐞𝐧𝐝𝐞𝐫:\n𝐏𝐞𝐬𝐚𝐧:\n\n————————𖤝:𖣂—————————')
 }
+break
+
+case 'addowner':
+if (!Ahmad) return reply(mess.only.owner)
+if (!args[0]) return replyhydro(`Use ${prefix+command} number\nExample ${prefix+command} ${ownernumber}`)
+bnnd = q.split("|")[0].replace(/[^0-9]/g, '')
+let ceknye = await hydro.onWhatsApp(bnnd)
+if (ceknye.length == 0) return replyhydro(`Enter A Valid And Registered Number On WhatsApp!!!`)
+owner.push(bnnd)
+fs.writeFileSync('./database/owner.json', JSON.stringify(owner))
+replyhydro(`Number ${bnnd} Has Become An Owner!!!`)
+break
+case 'delowner':
+if (!Ahmad) return reply(mess.only.owner)
+if (!args[0]) return replyhydro(`Use ${prefix+command} nomor\nExample ${prefix+command} 6285187063723`)
+ya = q.split("|")[0].replace(/[^0-9]/g, '')
+unp = owner.indexOf(ya)
+owner.splice(unp, 1)
+fs.writeFileSync('./database/owner.json', JSON.stringify(owner))
+replyhydro(`The Numbrr ${ya} Has been deleted from owner list by the owner!!!`)
 break
 case 'addcase': {
     if (!Ahmad) return reply(mess.only.owner)
@@ -27056,91 +27794,88 @@ break
 //==================================================================
 case 'hdvid':
 case 'vidhd':
-case 'hdvideo': {
-    if (!quoted || !/video/.test(mime)) {
-        return m.reply("❗Reply video yang ingin dijadikan HD!");
+case "hdvideo": {
+  if (!quoted || !/video/.test(mime)) return m.reply("❗Reply video yang ingin dijadikan HD!");
+
+  let [res, fpsText] = text?.trim().toLowerCase().split(" ");
+  let fps = 60;
+
+  if (fpsText && fpsText.endsWith("fps")) {
+    fps = parseInt(fpsText.replace("fps", ""));
+    if (isNaN(fps) || fps < 30 || fps > 240) {
+      return m.reply("❗ FPS harus antara 30 - 240 (contoh: 60fps)");
     }
+  }
 
-    let [res, fpsText] = text?.trim().toLowerCase().split(" ");
-    let fps = 60;
+  const resolutions = {
+    "480": "480",
+    "720": "720",
+    "1080": "1080",
+    "2k": "1440",
+    "4k": "2160",
+    "8k": "4320"
+  };
 
-    if (fpsText && fpsText.endsWith("fps")) {
-        fps = parseInt(fpsText.replace("fps", ""));
-        if (isNaN(fps) || fps < 30 || fps > 240) {
-            return m.reply("❗ FPS antara 30 - 240 (contoh: 60fps)");
-        }
-    }
+  if (!resolutions[res]) {
+    return m.reply(`❗ Resolusi tidak valid.\nContoh: ${prefix + command} 720\nAtau: ${prefix + command} 1080 60fps`);
+  }
 
-    const resolutions = {
-        "480": "480",
-        "720": "720",
-        "1080": "1080",
-        "2k": "1440",
-        "4k": "2160",
-        "8k": "4320"
-    };
+  const targetHeight = resolutions[res];
+  const id = m.sender.split("@")[0];
+  const inputFile = `./temp/input_${id}.mp4`;
+  const outputFile = `./temp/hdvideo_${id}.mp4`;
 
-    if (!resolutions[res]) {
-        return m.reply(`❗Contoh penggunaan:
-${prefix + command} 720
-${prefix + command} 1080 60fps`);
-    }
-
-    const targetHeight = resolutions[res];
-    const id = m.sender.split("@")[0];
-    const inputFile = `input_${id}.mp4`;
-    const outputFile = `hdvideo_${id}.mp4`;
-    const fileOutput = `./temp/${outputFile}`;
+  try {
+    if (!fs.existsSync('./temp')) fs.mkdirSync('./temp'); // Pastikan folder ada
 
     m.reply(`⏳ Mengubah video ke ${res.toUpperCase()} ${fps}FPS...`);
+    
+    const downloaded = await hydro.downloadAndSaveMediaMessage(quoted, inputFile);
+    const FormData = require("form-data");
+    const axios = require("axios");
+    const fs = require("fs");
 
-    try {
-        const downloaded = await hydro.downloadAndSaveMediaMessage(m.quoted, inputFile);
-        const FormData = require("form-data");
-        const axios = require("axios");
-        const fs = require("fs");
+    const form = new FormData();
+    form.append("video", fs.createReadStream(downloaded));
+    form.append("resolution", targetHeight);
+    form.append("fps", fps);
 
-        const form = new FormData();
-        form.append("video", fs.createReadStream(downloaded));
-        form.append("resolution", targetHeight);
-        form.append("fps", fps);
+    const response = await axios.post("http://193.149.164.168:4167/hdvideo", form, {
+      headers: form.getHeaders(),
+      responseType: "stream",
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+    });
 
-        const response = await axios.post("http://159.65.223.240:5062/hdvideo", form, {
-            headers: form.getHeaders(),
-            responseType: "stream",
-            timeout: 15000, // 15 detik timeout
-            maxBodyLength: Infinity,
-            maxContentLength: Infinity
-        });
+    const writer = fs.createWriteStream(outputFile);
+    response.data.pipe(writer);
 
-        const writer = fs.createWriteStream(fileOutput);
-        response.data.pipe(writer);
+    writer.on("finish", async () => {
+      try {
+        const buffer = fs.readFileSync(outputFile);
+        await hydro.sendMessage(m.chat, {
+          video: buffer,
+          caption: `✅ Berhasil diubah ke ${res.toUpperCase()} ${fps}FPS`
+        }, { quoted: m });
+      } catch (err) {
+        m.reply("❌ Gagal membaca hasil file.");
+      } finally {
+        fs.unlinkSync(downloaded);
+        fs.unlinkSync(outputFile);
+      }
+    });
 
-        writer.on("finish", async () => {
-            const buffer = fs.readFileSync(fileOutput);
-            await hydro.sendMessage(m.chat, {
-                video: buffer,
-                caption: `✅ Video berhasil diubah ke ${res.toUpperCase()} ${fps}FPS`
-            }, { quoted: m });
-
-            fs.unlinkSync(downloaded);
-            fs.unlinkSync(fileOutput);
-        });
-
-        writer.on("error", () => {
-            m.reply("❌ Gagal menyimpan hasil video");
-        });
-
-    } catch (err) {
-        console.error("HDVideo Error:", err.message);
-        if (err.code === 'ECONNABORTED') {
-            m.reply("❌ Timeout! Server tidak merespon.");
-        } else if (err.code === 'ECONNREFUSED') {
-            m.reply("❌ Gagal terhubung ke server HDVideo. Pastikan server aktif dan port 5062 dibuka.");
-        } else {
-            m.reply("❌ Terjadi kesalahan saat memproses video. Coba lagi nanti.");
-        }
-    }
+    writer.on("error", (err) => {
+      console.error("Write stream error:", err);
+      m.reply("❌ Gagal menyimpan hasil video (write stream error)");
+      fs.existsSync(downloaded) && fs.unlinkSync(downloaded);
+    });
+  } catch (err) {
+    console.error("Processing error:", err);
+    m.reply("❌ Terjadi kesalahan saat memproses video.");
+    if (fs.existsSync(inputFile)) fs.unlinkSync(inputFile);
+    if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
+  }
 }
 break;
 //==================================================================
@@ -31519,14 +32254,87 @@ if (!q) return replyhydro("Enter emoji, max 1 emoji, eg?" + ` ${prefix + command
 reply(mess.wait)
 emote(q, "10")
 break
-case 'emoji': {
-if (!args.join(" ")) return replyhydro('Where is the emoji?')
-emoji.get(args.join(" ")).then(async(emoji) => {
-let mese = await hydro.sendMessage(m.chat, {image:{url:emoji.images[4].url}, caption: `Made by ${global.botname}`}, {quoted:m})
-await hydro.sendMessage(from, {text:"reply #s to this image to make sticker"}, {quoted:mese})
-})
-}
+case 'stalkroblox': case 'robloxstalk': {
+    if (!text) {
+        return replyhydro(`Silakan masukkan username Roblox.\n*Contoh:*\n.robloxstalk Ninja_Noob443`);
+    }
+
+    try {
+        await hydro.sendMessage(m.chat, { react: { text: '🎮', key: m.key } });
+
+        const apiUrl = `https://zenzxz.dpdns.org/stalker/roblox?username=${encodeURIComponent(text)}`;
+        const { data } = await axios.get(apiUrl);
+        if (!data.status || !data.success) throw new Error('User tidak ditemukan.');
+
+        const user = data.data.account;
+        const presence = data.data.presence;
+        const stats = data.data.stats;
+        
+        const caption = `
+╭─ • 「 *Roblox Stalk* 」
+│  
+├ 👤 *Username:* ${user.username}
+├ 🏷️ *Display Name:* ${user.displayName}
+├ 📝 *Bio:* ${user.description || 'Tidak ada bio'}
+│  
+├ 📅 *Dibuat:* ${new Date(user.created).toLocaleString()}
+├ 🚫 *Banned:* ${user.isBanned ? '✅' : '❌'}
+├ ✅ *Verified:* ${user.hasVerifiedBadge ? '✅' : '❌'}
+│  
+├ 🌐 *Status:* ${presence.isOnline ? '🟢 Online' : '🔴 Offline'}
+├ ⏱️ *Terakhir Online:* ${presence.lastOnline || 'Tidak diketahui'}
+├ 🎮 *Aktivitas Terakhir:* ${presence.recentGame}
+│  
+├ 📊 *Statistik:*
+├ 👥 *Friends:* ${stats.friendCount.toLocaleString()}
+├ 📌 *Followers:* ${stats.followers.toLocaleString()}
+├ 👀 *Following:* ${stats.following.toLocaleString()}
+│  
+╰─ • *Creator:* Ahmad. 😼
+        `.trim();
+
+        // Kirim dengan gambar profil jika ada
+        if (user.profilePicture) {
+            await hydro.sendMessage(m.chat, {
+                image: { url: user.profilePicture },
+                caption: caption
+            }, { quoted: m });
+        } else {
+            await replyhydro(caption);
+        }
+
+    } catch (error) {
+        console.error(error);
+        replyhydro(`Gagal melakukan stalk pada user *${text}*. Username mungkin salah.`);
+    }
+};
 break
+case 'emoji': {
+  if (!text || [...text].length !== 1 || !/\p{Emoji}/u.test(text)) {
+    return replyhydro("Kirim 1 emoji saja, contoh: emoji 😍");
+  }
+
+  // Ambil kode Unicode dari emoji
+  const codePoints = [...text].map(char => char.codePointAt(0).toString(16)).join('-');
+  const url = `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${codePoints}.png`;
+
+  try {
+    let stiker = new Sticker(url, {
+      pack: 'HydroBot',
+      author: 'by Ahmad',
+      type: StickerTypes.FULL,
+      quality: 80
+    });
+
+    const buffer = await stiker.build();
+    await hydro.sendMessage(m.chat, { sticker: buffer }, { quoted: m });
+
+  } catch (e) {
+    console.error(e);
+    replyhydro("Gagal mengubah emoji jadi stiker.");
+  }
+}
+break;
 case 'volume': {
 if (!args.join(" ")) return replyhydro(`Example: ${prefix + command} 10`)
 media = await hydro.downloadAndSaveMediaMessage(quoted, "volume")
@@ -31899,117 +32707,75 @@ thumbnailUrl: global.thumbnail,
      break
 case 'instagramstalk':
 case 'igstalk': {
-if (!text) return replyhydro(`Enter Instagram Username\n\nExample: ${prefix + command} focabar`)
-hydro.sendMessage(m.chat, { react: { text: '🕒', key: m.key }})
-    try {
-const dat = await fetchJson(`https://btch.us.kg/download/igstalkfull?username=${encodeURIComponent(text)}`);
-if (!dat || !dat.result) {
-    return hydro.sendMessage(m.chat, { text: "Data tidak ditemukan atau API error." }, { quoted: m });
-}
-const data = dat.result;
-const data1 = dat.result.stats;
-const te = `
-┌──「 *STALKING* 」
-▢ *🔖Name:* ${data.fullName} 
-▢ *🔖Username:* ${data.username.replace(/^@/, '')}
-▢ *👥Follower:* ${data1.followers}
-▢ *🫂Following:* ${data1.following}
-▢ *📌Bio:* ${data.bio}
-▢ *🏝️Posts:* ${data1.posts}
-▢ *🔗 Link:* https://instagram.com/${data.username.replace(/^@/, '')}
-└────────────`;
-await hydro.sendMessage(m.chat, { image: { url: data.profilePic }, caption: te }, { quoted: m });
-      } catch {
-        replyhydro(`Pastikan nama pengguna berasal dari *Instagram*`)
-      }
+  if (!text) return replyhydro(`Enter Instagram Username\n\nExample: ${prefix + command} focabar`)
+  hydro.sendMessage(m.chat, { react: { text: '🕒', key: m.key }})
+
+  try {
+    const dat = await fetchJson(`https://api.siputzx.my.id/api/stalk/instagram?username=${encodeURIComponent(text)}`)
+    if (!dat || !dat.status || !dat.data) {
+      return hydro.sendMessage(m.chat, { text: "Data tidak ditemukan atau API error." }, { quoted: m })
+    }
+
+    const data = dat.data
+    const teks = `
+┌──「 *INSTAGRAM STALKING* 」
+▢ *🔖Name:* ${data.full_name}
+▢ *🔖Username:* ${data.username}
+▢ *👥Follower:* ${data.followers_count}
+▢ *🫂Following:* ${data.following_count}
+▢ *🏝️Posts:* ${data.posts_count}
+▢ *📌Bio:* ${data.biography || '-'}
+▢ *🔗 Link:* https://instagram.com/${data.username}
+└────────────`
+
+    await hydro.sendMessage(m.chat, {
+      image: { url: data.profile_pic_url },
+      caption: teks
+    }, { quoted: m })
+
+  } catch (err) {
+    console.error(err)
+    replyhydro(`Pastikan nama pengguna berasal dari *Instagram*`)
+  }
 }
 break
 case 'tiktokstalk':
 case 'ttstalk': {
-    if (!text) return replyhydro(`Masukkan TikTok Username\n\nExample: ${prefix + command} focabar`);
-    hydro.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
-async function tiktokStalk(username) {
-    try {
-        const response = await axios.get(`https://www.tiktok.com/@${username}`, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept-Language': 'en-US,en;q=0.9',
-            },
-        });
-        const html = response.data;
-        const $ = cheerio.load(html);
-        const scriptData = $('#__UNIVERSAL_DATA_FOR_REHYDRATION__').html();
+  if (!text) return replyhydro(`Masukkan TikTok Username\n\nExample: ${prefix + command} focabar`);
+  hydro.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
 
-        if (!scriptData || !scriptData.trim().startsWith('{')) {
-            throw new Error('Data tidak ditemukan atau format salah.');
-        }
-
-        const parsedData = JSON.parse(scriptData);
-        const userDetail = parsedData.__DEFAULT_SCOPE__?.['webapp.user-detail'];
-
-        if (!userDetail) {
-            throw new Error('User tidak ditemukan.');
-        }
-
-        const userInfo = userDetail.userInfo?.user;
-        const stats = userDetail.userInfo?.stats;
-        const metadata = {
-            userInfo: {
-                id: userInfo?.id || null,
-                username: userInfo?.uniqueId || null,
-                nama: userInfo?.nickname || null,
-                avatar: userInfo?.avatarLarger || null,
-                bio: userInfo?.signature || null,
-                verifikasi: userInfo?.verified || false,
-                totalfollowers: stats?.followerCount || 0,
-                totalmengikuti: stats?.followingCount || 0,
-                totaldisukai: stats?.heart || 0,
-                totalvideo: stats?.videoCount || 0,
-                totalteman: stats?.friendCount || 0,
-            },
-        };
-        return metadata; 
-    } catch (error) {
-        console.error('Error:', error.message);
-        return { error: error.message };
+  try {
+    const res = await fetchJson(`https://api.siputzx.my.id/api/stalk/tiktok?username=${encodeURIComponent(text)}`);
+    if (!res || !res.status || !res.data) {
+      throw new Error('Data tidak ditemukan atau format API salah.');
     }
-}
-    try {
-        const daa = await tiktokStalk(text); 
-        if (daa.error) {
-            throw new Error(daa.error);
-        }
-        const data = daa.userInfo;
-        if (!data || !data.nama) {
-            throw new Error('Data tidak valid.');
-        }
-        const teks = `
-┌──「 *STALKING* 」
-▢ *🔖 Name:* ${data.nama}
-▢ *🔖 Username:* ${data.username}
-▢ *👥 Followers:* ${data.totalfollowers}
-▢ *🫂 Following:* ${data.totalmengikuti}
-▢ *📌 Bio:* ${data.bio}
-▢ *🏝️ Posts:* ${data.totalvideo}
-▢ *❣️ Likes:* ${data.totaldisukai}
-▢ *🔗 Link:* https://tiktok.com/@${data.username}
+
+    const user = res.data.user;
+    const stats = res.data.stats;
+
+    const teks = `
+┌──「 *TIKTOK STALKING* 」
+▢ *🔖 Name:* ${user.nickname}
+▢ *🔖 Username:* ${user.uniqueId}
+▢ *👥 Followers:* ${stats.followerCount}
+▢ *🫂 Following:* ${stats.followingCount}
+▢ *📌 Bio:* ${user.signature || "-"}
+▢ *🏝️ Posts:* ${stats.videoCount}
+▢ *❣️ Likes:* ${stats.heart}
+▢ *🔗 Link:* https://tiktok.com/@${user.uniqueId}
 └────────────`;
 
-        await hydro.sendMessage(
-            m.chat,
-            { image: { url: data.avatar }, caption: teks },
-            { quoted: m }
-        );
-    } catch (error) {
-        console.error('Error:', error.message);
-        await hydro.sendMessage(
-            m.chat,
-            { text: `Terjadi kesalahan: ${error.message}` },
-            { quoted: m }
-        );
-    }
+    await hydro.sendMessage(m.chat, {
+      image: { url: user.avatarLarger },
+      caption: teks
+    }, { quoted: m });
 
-
+  } catch (error) {
+    console.error('Error:', error.message);
+    await hydro.sendMessage(m.chat, {
+      text: `Terjadi kesalahan: ${error.message}`
+    }, { quoted: m });
+  }
 }
 break;
 case 'fb':
@@ -32989,7 +33755,7 @@ reply(e)
 }
 }
 
-if (budy.startsWith('×$')) {
+if (budy.startsWith('$')) {
                     if (!Ahmad) return reply(mess.only.owner)
                     exec(budy.slice(2), (err, stdout) => {
                         if (err) return replyhydro(err)
