@@ -45,6 +45,7 @@ const { ytDonlodMp3, ytDonlodMp4, ytPlayMp3, ytPlayMp4, ytSearch } = require('./
 const anon = require('./lib/menfess') 
 const scp1 = require('./scrape/scraper') 
 const scp2 = require('./scrape/scraperr')
+const mediafire = require('./scrape/mediafire');
 const scp3 = require('./scrape/scraperrr')
 const githubstalk = require('./scrape/githubstalk')
 const npmstalk = require('./scrape/npmstalk')
@@ -82,6 +83,10 @@ let badhydro = JSON.parse(fs.readFileSync('./database/bad.json'))
 let ntwame = JSON.parse(fs.readFileSync('./database/antiwame.json'))
 let ntlinkgc =JSON.parse(fs.readFileSync('./database/antilinkgc.json'))
 let ntlinkch =JSON.parse(fs.readFileSync('./database/antilinkch.json'))
+let warnlinkch = JSON.parse(fs.readFileSync('./database/antilinkch-warning.json'));
+function saveWarnLinkCh() {
+    fs.writeFileSync('./database/antilinkch-warning.json', JSON.stringify(warnlinkch, null, 2));
+}
 let ntilinkall =JSON.parse(fs.readFileSync('./database/antilinkall.json'))
 let ntilinktwt =JSON.parse(fs.readFileSync('./database/antilinktwitter.json'))
 let ntilinktt =JSON.parse(fs.readFileSync('./database/antilinktiktok.json'))
@@ -91,6 +96,12 @@ let ntilinkig =JSON.parse(fs.readFileSync('./database/antilinkinstagram.json'))
 let ntilinkytch =JSON.parse(fs.readFileSync('./database/antilinkytchannel.json'))
 let ntilinkytvid =JSON.parse(fs.readFileSync('./database/antilinkytvideo.json'))
 let sewa = JSON.parse(fs.readFileSync('./database/sewa.json'));
+let antitagsw = JSON.parse(fs.readFileSync('./database/antitagsw.json'))
+let warnTagSw = JSON.parse(fs.readFileSync('./database/antitagsw-warning.json'))
+
+function saveAntitagWarning() {
+    fs.writeFileSync('./database/antitagsw-warning.json', JSON.stringify(warnTagSw, null, 2));
+}
 let openaigc = JSON.parse(fs.readFileSync('./database/openaigc.json'))
 let set_welcome_db = JSON.parse(fs.readFileSync('./database/set_welcome.json'));
 let set_left_db = JSON.parse(fs.readFileSync('./database/set_left.json'));
@@ -1047,7 +1058,7 @@ thumbnailUrl: "",
 gifPlayback: true,
 subtitle: "",
 hasMediaAttachment: true,
-...(await prepareWAMessageMedia({ video: { url: 'https://qu.ax/uVPaF.mp4' } }, { upload: hydro.waUploadToServer })),
+...(await prepareWAMessageMedia({ image: fs.readFileSync('./data/image/menu.jpg') }, { upload: hydro.waUploadToServer })),
 }),
 gifPlayback: true,
 nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
@@ -2503,6 +2514,44 @@ if (reactpsn) {
             }
         })
 }
+// ─── ANTITAG STATUS (SW) ─────────────────────────────────────
+if (
+  antitagsw.includes(m.chat) &&
+  m.mtype === 'groupStatusMentionMessage' &&
+  !isAdmins &&
+  !Ahmad
+) {
+  if (!warnTagSw[m.chat]) warnTagSw[m.chat] = {};
+  if (!warnTagSw[m.chat][m.sender]) warnTagSw[m.chat][m.sender] = 1;
+  else warnTagSw[m.chat][m.sender] += 1;
+
+  let warning = warnTagSw[m.chat][m.sender];
+  saveAntitagWarning();
+
+  await hydro.sendMessage(m.chat, {
+    delete: {
+      remoteJid: m.chat,
+      fromMe: false,
+      id: m.key.id,
+      participant: m.key.participant
+    }
+  });
+
+  if (warning >= 3) {
+    delete warnTagSw[m.chat][m.sender];
+    saveAntitagWarning();
+    await hydro.groupParticipantsUpdate(m.chat, [m.sender], 'remove');
+    return hydro.sendMessage(m.chat, {
+      text: `🚨 *「 Tag Status Terdeteksi 」*\n\n@${m.sender.split("@")[0]} telah mention grup lewat status sebanyak 3x.\n💥 Dikeluarkan dari grup.`,
+      contextInfo: { mentionedJid: [m.sender] }
+    });
+  } else {
+    return hydro.sendMessage(m.chat, {
+      text: `⚠️ *「 Tag Status Terdeteksi 」*\n\n@${m.sender.split("@")[0]}, dilarang mention grup lewat status!\n📛 Peringatan ke: *${warning}/3*`,
+      contextInfo: { mentionedJid: [m.sender] }
+    });
+  }
+}
 // ─── ANTILINK GRUP ─────────────────────────────────────────
 if (Antilinkgc) {
   const regex = /https:\/\/chat\.whatsapp\.com\/([0-9A-Za-z]{20,24})/i;
@@ -2621,31 +2670,59 @@ if (m.text && m.text.startsWith(prefix)) {
   }
 }
 //Antichlink
-             if (Antilinkch) {
+if (Antilinkch && budy.match(/whatsapp\.com\/channel/gi)) {
+    if (!isBotAdmins) return replyhydro('🚫 *Bot harus menjadi admin untuk menindak pelanggaran link!*');
 
-        if (budy.match(`whatsapp.com/channel`)) {
+    let senderId = m.sender;
 
-        if (!isBotAdmins) return reply('_Bot Harus Menjadi Admin Terlebih Dahulu_')
+    // Admin & Owner dibebaskan
+    if (isAdmins) {
+        return hydro.sendMessage(m.chat, {
+            text: `🛡️ *「 Channel Link Terdeteksi 」*\n\n👮 Admin mengirim link, admin diperbolehkan.`,
+        }, { quoted: m });
+    }
 
-        let chlink = (`https://whatsapp.com/channel/`)
+    if (Ahmad) {
+        return hydro.sendMessage(m.chat, {
+            text: `🛡️ *「 Channel Link Terdeteksi 」*\n\n👑 Owner mengirim link, owner diperbolehkan.`,
+        }, { quoted: m });
+    }
 
-        if (isAdmins) return hydro.sendMessage(m.chat, {text: `\`\`\`「 Channel Link Detected 」\`\`\`\n\n Admin mengirimkan link, admin mah bebas memposting link apapun`})
+    // HAPUS PESAN sejak awal (peringatan 1–3)
+    await hydro.sendMessage(m.chat, {
+        delete: {
+            remoteJid: m.chat,
+            fromMe: false,
+            id: m.key.id,
+            participant: m.key.participant
+        }
+    });
 
-        if (Ahmad) return hydro.sendMessage(m.chat, {text: `\`\`\`「 Channel Link Detected 」\`\`\`\n\n owner telah mengirim tautan, owner bebas memposting tautan apa pun`})
-        kice = m.sender
-        await hydro.sendMessage(m.chat,
-			    {
-			        delete: {
-			            remoteJid: m.chat,
-			            fromMe: false,
-			            id: m.key.id,
-			            participant: m.key.participant
-			        }
-			    })
-			    await hydro.groupParticipantsUpdate(m.chat, [kice], 'remove')
-	    hydro.sendMessage(m.chat, {text:`\`\`\`「 Tautan Terdeteksi 」\`\`\`\n\n@${m.sender.split("@")[0]} telah mengirimkan tautan dan berhasil dihapus`,contextInfo:{mentionedJid:[m.sender]}})
-		    }
-		}
+    // Inisialisasi / Tambah warning
+    if (!warnlinkch[m.chat]) warnlinkch[m.chat] = {};
+    if (!warnlinkch[m.chat][senderId]) warnlinkch[m.chat][senderId] = 1;
+    else warnlinkch[m.chat][senderId] += 1;
+
+    let warning = warnlinkch[m.chat][senderId];
+    saveWarnLinkCh();
+
+    if (warning >= 3) {
+        delete warnlinkch[m.chat][senderId];
+        saveWarnLinkCh();
+
+        await hydro.groupParticipantsUpdate(m.chat, [senderId], 'remove');
+
+        return hydro.sendMessage(m.chat, {
+            text: `🚨 *「 Channel Link Terdeteksi 」*\n\n@${senderId.split("@")[0]} telah mengirim link channel *sebanyak 3 kali*.\n\n💣 *Aksi: Dikeluarkan dari grup!*`,
+            contextInfo: { mentionedJid: [senderId] }
+        }, { quoted: m });
+    } else {
+        return hydro.sendMessage(m.chat, {
+            text: `⚠️ *「 Peringatan Link Channel 」*\n\n@${senderId.split("@")[0]}, dilarang mengirim link channel WhatsApp!\n📛 Peringatan ke: *${warning}/3*\n🧹 Pesanmu telah dihapus.`,
+            contextInfo: { mentionedJid: [senderId] }
+        }, { quoted: m });
+    }
+}
 
   if (antiWame)
   if (budy.includes(`Wa.me`)) {
@@ -3470,14 +3547,19 @@ await sleep(3000)
 process.exit()
 break
 case 'totalfeature':
-        case 'totalfitur': 
-        case 'totalcmd': 
-        case 'totalcommand': 
-            replyhydro(`hallo kak ${pushname}
-jadi ${botname} memiliki total fitur ${HydroFitur()}
-bantu support dan donasinya biar fitur nya 
-tambah banyak yaa..... terimakasih.🔥🔥`)
-        break
+case 'totalfitur': 
+case 'totalcmd': 
+case 'totalcommand': 
+    replyhydro(`┌──⭓ *${botname} Total Fitur* ⭓──┐
+│
+│ 👤 Pengguna: *${pushname}*
+│ 💡 Total Fitur: *${HydroFitur()}* Command
+│ 💖 Dukunganmu sangat berarti!
+│ 🚀 Yuk bantu support dan donasi ✨
+│ agar fitur terus bertambah~ 🙌
+│
+└────⭓ Terimakasih 🔥`)
+    break
 case 'owner': {
 let name = m.pushName || hydro.getName(m.sender);
 let pan = `
@@ -3807,7 +3889,7 @@ const bet = {
   ]
 }
 await listbut2(m.chat, teks, bet, m)
-await hydro.sendMessage(from, { audio: { url: 'https://qu.ax/oCfwP.mp3'} , mimetype: 'audio/mp4', ptt: true }, { quoted: m })
+await hydro.sendMessage(from, { audio: { url: 'https://qu.ax/pLtnT.mp3'} , mimetype: 'audio/mp4', ptt: true }, { quoted: m })
 }
 break
 
@@ -13416,6 +13498,25 @@ ${Object.keys(used).map(key => `${key.padEnd(12)}: ${formatp(used[key])}`).join(
   replyhydro(response)
 }
 break
+case 'antitagsw': {
+    if (!m.isGroup) return replyhydro('❌ Perintah ini hanya bisa digunakan di grup!');
+    if (!isGroupAdmins) return replyhydro('❌ Hanya *admin grup* yang dapat mengatur fitur ini.');
+
+    if (args[0] === 'on') {
+        if (antitagsw.includes(m.chat)) return replyhydro('✅ Fitur *Anti Tag Status* sudah aktif di grup ini.');
+        antitagsw.push(m.chat);
+        fs.writeFileSync('./database/antitagsw.json', JSON.stringify(antitagsw, null, 2));
+        replyhydro('✅ Fitur *Anti Tag Status* berhasil *diaktifkan*.');
+    } else if (args[0] === 'off') {
+        if (!antitagsw.includes(m.chat)) return replyhydro('❌ Fitur *Anti Tag Status* belum aktif.');
+        antitagsw = antitagsw.filter(gid => gid !== m.chat);
+        fs.writeFileSync('./database/antitagsw.json', JSON.stringify(antitagsw, null, 2));
+        replyhydro('✅ Fitur *Anti Tag Status* berhasil *dinonaktifkan*.');
+    } else {
+        replyhydro(`⚙️ *Pengaturan Anti Tag Status (Story)*\n\nGunakan:\n• ${prefix}antitagsw on\n• ${prefix}antitagsw off`);
+    }
+}
+break;
             case 'bctext': case 'broadcasttext': case 'broadcast': {
 			    if (!Ahmad) return reply(mess.only.owner)
 		            if (!q) return replyhydro(`Masukkan teks`)
@@ -29369,58 +29470,69 @@ let data = await BingHydro(text)
 
 }
         break
-case 'mediafire': {
-  if (!text) return replyhydro(`Dimana linknya?`);
-async function mediafireDownloader(url) {
-    const response = await fetch('https://r.jina.ai/' + url, {
-        headers: { 'x-return-format': 'html' }
-    })
-    if (!response.ok) throw new Error("Gagal mengambil data dari MediaFire!")
+case 'mediafire': case 'mf': {
+  if (!text || !isUrl(text) || !text.includes('mediafire.com'))
+    return replyhydro(`❗ Masukkan link Mediafire yang valid!\nContoh:\n${prefix + command} https://www.mediafire.com/file/abc123/file.apk`);
 
-    const textHtml = await response.text()
-    const $ = cheerio.load(textHtml)
-    const TimeMatch = $('div.DLExtraInfo-uploadLocation div.DLExtraInfo-sectionDetails')
-        .text()
-        .match(/This file was uploaded from (.*?) on (.*?) at (.*?)\n/)
-    const fileSize = $('a#downloadButton').text().trim().split('\n')[0].trim()
-    return {
-        title: $('div.dl-btn-label').text().trim() || "Tidak diketahui",
-        filename: $('div.dl-btn-label').attr('title') || "file",
-        url: $('a#downloadButton').attr('href'),
-        size: fileSize || "Tidak diketahui",
-        from: TimeMatch?.[1] || "Tidak diketahui",
-        date: TimeMatch?.[2] || "Tidak diketahui",
-        time: TimeMatch?.[3] || "Tidak diketahui"
-    }
+  hydro.mediafire = hydro.mediafire || {}
+  if (m.sender in hydro.mediafire)
+    return replyhydro("❗ Masih ada proses Mediafire yang sedang berlangsung. Silakan tunggu.");
+
+  hydro.mediafire[m.sender] = true;
+  await hydro.sendMessage(m.chat, { react: { text: "⏱️", key: m.key } });
+
+  try {
+    const result = await mediafire(text); // dari ./scrape/mediafire.js
+
+    if (!result.download) throw new Error("Gagal mendapatkan link unduhan.");
+
+    const caption = `✅ *Berhasil mengambil file MediaFire!*\n\n`
+      + `📂 *Nama File:* ${result.filename}\n`
+      + `📦 *Ukuran:* ${result.size}\n`
+      + `🔗 *Link:* ${result.download}`;
+
+    const ext = result.type.toLowerCase(); // .mp4, .zip, .7z, dll
+    let mime = 'application/octet-stream'; // default
+
+    // 🎯 Penyesuaian MIME Type
+    if (ext === '.mp4') mime = 'video/mp4';
+    else if (ext === '.mp3') mime = 'audio/mpeg';
+    else if (ext === '.zip') mime = 'application/zip';
+    else if (ext === '.rar') mime = 'application/vnd.rar';
+    else if (ext === '.7z') mime = 'application/x-7z-compressed';
+    else if (ext === '.tar') mime = 'application/x-tar';
+    else if (ext === '.gz') mime = 'application/gzip';
+    else if (ext === '.apk') mime = 'application/vnd.android.package-archive';
+    else if (ext === '.pdf') mime = 'application/pdf';
+    else if (ext === '.doc') mime = 'application/msword';
+    else if (ext === '.docx') mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    else if (ext === '.xls') mime = 'application/vnd.ms-excel';
+    else if (ext === '.xlsx') mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    else if (ext === '.ppt') mime = 'application/vnd.ms-powerpoint';
+    else if (ext === '.pptx') mime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    else if (ext === '.json') mime = 'application/json';
+    else if (ext === '.csv') mime = 'text/csv';
+    else if (ext === '.txt') mime = 'text/plain';
+    else if (ext === '.xml') mime = 'application/xml';
+    else if (ext === '.html') mime = 'text/html';
+
+    await hydro.sendMessage(m.chat, { react: { text: "✅", key: m.key } });
+    await hydro.sendMessage(m.chat, {
+      document: { url: result.download },
+      fileName: result.filename,
+      mimetype: mime,
+      caption
+    }, { quoted: m });
+
+  } catch (err) {
+    await hydro.sendMessage(m.chat, { react: { text: "❌", key: m.key } });
+    replyhydro(`❌ *Gagal mengambil file:* ${err.message}`);
+  }
+
+  delete hydro.mediafire[m.sender];
+  break
 }
-    hydro.mediafire = hydro.mediafire || {}
-    if (m.sender in hydro.mediafire) return reply( "❗ Masih ada proses yang belum selesai. Silakan tunggu.")
-    hydro.mediafire[m.sender] = true
-    await hydro.sendMessage(m.chat, { react: { text: "🌀", key: m.key } })
-    try {
-        let result = await mediafireDownloader(text)
-        if (!result.url) return replyhydro("❌ Gagal mendapatkan link unduhan.")
-        let caption = `✅ *Berhasil mengunduh file dari MediaFire!*\n\n`
-            + `📂 *Nama File:* ${result.filename}\n`
-            + `📦 *Ukuran:* ${result.size}\n`
-            + `📅 *Tanggal Unggah:* ${result.date}\n`
-            + `⏰ *Waktu Unggah:* ${result.time}\n`
-            + `🌍 *Diupload dari:* ${result.from}\n\n`
-            + `🔗 *Link:* ${result.url}`
-        await hydro.sendMessage(m.chat, { react: { text: "✅", key: m.key } })
-        await hydro.sendMessage(m.chat, {
-            document: { url: result.url },
-            mimetype: 'application/octet-stream',
-            fileName: result.filename,
-            caption: caption
-        }, { quoted: m })
-    } catch (error) {
-        await hydro.sendMessage(m.chat, { react: { text: "❌", key: m.key } })
-        m.reply(`❌ *Gagal mengunduh file:* ${error.message}`)
-    }
-    delete hydro.mediafire[m.sender]
-}
-break
+
 case 'tiktokxx':{ 
 if (!text) return replyhydro( `Example : ${prefix + command} link`)
 if (!q.includes('tiktok')) return replyhydro(`Link Invalid!!`)
