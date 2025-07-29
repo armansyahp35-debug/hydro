@@ -47,8 +47,10 @@ const scp1 = require('./scrape/scraper')
 const scp2 = require('./scrape/scraperr')
 const mediafire = require('./scrape/mediafire');
 const scp3 = require('./scrape/scraperrr')
+const similarity = require("similarity");
 const githubstalk = require('./scrape/githubstalk')
 const npmstalk = require('./scrape/npmstalk')
+const didyoumean = require("didyoumean");
 const photooxy = require('./scrape/photooxy')
 const yts = require('./scrape/yt-search')
 const vm = require('node:vm')
@@ -84,6 +86,43 @@ let ntwame = JSON.parse(fs.readFileSync('./database/antiwame.json'))
 let ntlinkgc =JSON.parse(fs.readFileSync('./database/antilinkgc.json'))
 let ntlinkch =JSON.parse(fs.readFileSync('./database/antilinkch.json'))
 let warnlinkch = JSON.parse(fs.readFileSync('./database/antilinkch-warning.json'));
+function gayaHalah(text) {
+    if (/cangratalataans|laval|rala|raward|samakan|sarang|barantaraksa|nashakaga chasata/i.test(text)) {
+        return null;
+    }
+    return text
+        .replace(/[aeou]/gi, 'a')
+        .replace(/congratulations/gi, 'cangratalataans')
+        .replace(/you/gi, 'yaa')
+        .replace(/level/gi, 'laval')
+        .replace(/role/gi, 'rala')
+        .replace(/reward/gi, 'raward')
+        .replace(/semakin/gi, 'samakan')
+        .replace(/sering/gi, 'sarang')
+        .replace(/berinteraksi/gi, 'barantaraksa')
+        .replace(/dengan/gi, 'dangan')
+        .replace(/nishikigi chisato/gi, 'nashakaga chasata')
+        .replace(/money/gi, 'manay')
+}
+
+function gayaHilih(text) {
+    if (/cingritilitiins|livil|rili|riwird|simikin|siring|birintiriksi|nishikigi chisiti/i.test(text)) {
+        return null;
+    }
+    return text
+        .replace(/[aeou]/gi, 'i')
+        .replace(/congratulations/gi, 'cingritilitiins')
+        .replace(/you/gi, 'yii')
+        .replace(/level/gi, 'livil')
+        .replace(/role/gi, 'rili')
+        .replace(/reward/gi, 'riwird')
+        .replace(/semakin/gi, 'simikin')
+        .replace(/sering/gi, 'siring')
+        .replace(/berinteraksi/gi, 'birintiriksi')
+        .replace(/dengan/gi, 'dingin')
+        .replace(/nishikigi chisato/gi, 'nishikigi chisiti')
+        .replace(/money/gi, 'miniy')
+}
 function saveWarnLinkCh() {
     fs.writeFileSync('./database/antilinkch-warning.json', JSON.stringify(warnlinkch, null, 2));
 }
@@ -608,7 +647,7 @@ if (!m.key.fromMe && !hydro.public) {
                     thumbnailUrl: 'https://i.ibb.co/8dFd0yY/group.jpg',
                     sourceUrl: 'https://chat.whatsapp.com/LqCKICVcCgiJcrxttSRci3',
                     mediaType: 1,
-                    showAdAttribution: true,
+                    showAdAttribution: false,
                     renderLargerThumbnail: true
                 }
             }
@@ -875,7 +914,7 @@ forwardingScore: 999,
 isForwarded: true,
 "externalAdReply": {
 "showAdAttribution": false,
-"containsAutoReply": false,
+"containsAutoReply": true,
 "title": `${global.botname}`,
 "body": `${HydroWaktu} ${pushname} 👋🏻`,
 "previewType": "VIDEO",
@@ -2085,7 +2124,7 @@ for (let [sholat, waktu] of Object.entries(jadwalSholat)) {
                         ptt: true,
                         contextInfo: {
                             externalAdReply: {
-                                showAdAttribution: true,
+                                showAdAttribution: false,
                                 mediaType: 1,
                                 mediaUrl: '',
                                 title: `Selamat menunaikan Ibadah Sholat ${sholat}`,
@@ -4104,7 +4143,7 @@ hydro.sendMessage(m.chat, {
 text: text12,
 contextInfo: {
 externalAdReply: {
-showAdAttribution: true,
+showAdAttribution: false,
 title: ownername,
 body: 'bodynya',
 "thumbnailUrl": 'https://qu.ax/DmcQu.jpg',
@@ -9972,7 +10011,7 @@ hydro.sendMessage(m.chat, {
 text: text12,
 contextInfo: {
 externalAdReply: {
-showAdAttribution: true,
+showAdAttribution: false,
 title: ownername,
 body: 'subdomain',
 "thumbnailUrl": 'https://qu.ax/DmcQu.jpg',
@@ -10027,7 +10066,17 @@ function subDomain1(host, ip) {
              else reply(`gagal membuat subdomain\nMsg: ${e['error']}`)
            }); }
  break
- 
+ case 'halah':
+case 'hilih': {
+    let teks = m.quoted?.text || q;
+    if (!teks) return replyhydro('🔁 Kirim teks atau reply ke pesan yang ingin diubah.');
+
+    let hasil = command === 'halah' ? gayaHalah(teks) : gayaHilih(teks);
+    if (!hasil) return replyhydro('🚫 Teks ini sudah pernah diubah sebelumnya.');
+
+    replyhydro(hasil);
+}
+break;
            case 'd2': {
         if (!Ahmad) return reply(mess.only.owner)
            function subDomain1(host, ip) {
@@ -12401,7 +12450,7 @@ if (e['success']) reply(`┏━━━━━━━━━━━━━━━━━�
              else reply(`gagal membuat subdomain\nMsg: ${e['error']}`)
            }); }
 break
-case 'request': case 'reportbug': {
+case 'reportbug': {
   hydro.sendMessage(m.chat, { react: { text: `⏱️`, key: m.key }})
 	if (!text) return replyhydro(`Example : ${
         prefix + command
@@ -12763,52 +12812,74 @@ renderLargerThumbnail: true
         }
         break;
 //=================={{=[===================]]\\
-case "tourl": {
-const FormData = require("form-data");
-const mime = require("mime-types");
-const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
-async function pomf2(filePath) {
-    try {
-        if (!fs.existsSync(filePath)) throw new Error("File tidak ditemukan");
-        const contentType = mime.lookup(filePath) || "application/octet-stream";
-        const fileName = path.basename(filePath);
-        const ext = path.extname(filePath).toLowerCase();
-        const form = new FormData();
-        form.append("files[]", fs.createReadStream(filePath), {
-            contentType,
-            filename: fileName, // Paksa nama file tetap JPG
-        });
-        const response = await axios.post("https://qu.ax/upload.php", form, {
-            headers: {
-                ...form.getHeaders(),
-            },
-        });
+case 'tourl': {
+    if (!quoted) return replyhydro('Reply media (foto/video) yang ingin diupload.');
 
-        // Cek hasil
-        if (!response.data.success || !response.data.files?.length) throw new Error("Upload gagal");
-        
-        return response.data.files[0].url;
-    } catch (err) {
-        console.error("Error:", err.message);
-        return null;
+    const FormData = require("form-data");
+    const mime = require("mime-types");
+    const fs = require("fs");
+    const path = require("path");
+    const { fromBuffer } = require("file-type");
+    const axios = require("axios");
+
+    // Fungsi upload ke qu.ax
+    async function pomf2(filePath) {
+        try {
+            if (!fs.existsSync(filePath)) throw new Error("File tidak ditemukan");
+            const contentType = mime.lookup(filePath) || "application/octet-stream";
+            const fileName = path.basename(filePath);
+            const form = new FormData();
+            form.append("files[]", fs.createReadStream(filePath), {
+                contentType,
+                filename: fileName,
+            });
+            const response = await axios.post("https://qu.ax/upload.php", form, {
+                headers: {
+                    ...form.getHeaders(),
+                },
+            });
+            if (!response.data.success || !response.data.files?.length) throw new Error("Upload ke qu.ax gagal");
+            return response.data.files[0].url;
+        } catch (err) {
+            console.error("Pomf2 Error:", err.message);
+            return null;
+        }
     }
-}
+
+    // Fungsi upload ke catbox.moe
+    async function uploadCatbox(buffer) {
+        const form = new FormData();
+        const { ext } = await fromBuffer(buffer);
+        form.append("fileToUpload", buffer, "file." + ext);
+        form.append("reqtype", "fileupload");
+
+        const res = await axios.post("https://catbox.moe/user/api.php", form, {
+            headers: form.getHeaders(),
+        });
+        return res.data;
+    }
+
     try {
-      const media = await hydro.downloadAndSaveMediaMessage(quoted)
-        let link = await pomf2(media);
-        if (!link) throw 'Gagal mengunggah media.';
+        const media = await hydro.downloadAndSaveMediaMessage(quoted);
+        const buffer = fs.readFileSync(media);
+
+        let [quaxLink, catboxLink] = await Promise.all([
+            pomf2(media),
+            uploadCatbox(buffer)
+        ]);
+
+        if (!quaxLink && !catboxLink) throw new Error("Keduanya gagal diupload");
 
         let caption = `╭─ 「 UPLOAD SUCCESS 」
-📂 Size: ${media.length} Byte
-🌍 URL: ${link}
+📂 Size: ${buffer.length} Byte
+🌍 Link 1: ${quaxLink || '❌ Gagal'}
+🌍 Link 2: ${catboxLink || '❌ Gagal'}
 📌 Expired: permanent
 ╰───────────────`;
 
         let thumbnail = await prepareWAMessageMedia(
-            { image: { url: link } },
-            { upload: hydro .waUploadToServer }
+            { image: { url: quaxLink || catboxLink } },
+            { upload: hydro.waUploadToServer }
         );
 
         let msg = {
@@ -12823,25 +12894,33 @@ async function pomf2(filePath) {
                 }),
                 nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
                     buttons: [
-                        {
+                        ...(quaxLink ? [{
                             name: "cta_copy",
                             buttonParamsJson: JSON.stringify({
-                                display_text: "Copy Link",
-                                copy_code: link
+                                display_text: "Copy Link qu.ax",
+                                copy_code: quaxLink
                             })
-                        }
+                        }] : []),
+                        ...(catboxLink ? [{
+                            name: "cta_copy",
+                            buttonParamsJson: JSON.stringify({
+                                display_text: "Copy Link catbox",
+                                copy_code: catboxLink
+                            })
+                        }] : [])
                     ]
                 })
             })
         };
 
-        await hydro .relayMessage(m.chat, msg, { messageId: m.key.id });
+        await hydro.relayMessage(m.chat, msg, { messageId: m.key.id });
 
-    } catch (error) {
-        reply(`Error: ${error.message || error}`);
+        fs.unlinkSync(media); // hapus file setelah upload
+    } catch (err) {
+        replyhydro(`❌ Gagal: ${err.message}`);
     }
 }
-break
+break;
 //=================================================================
 case 'carimusik':
 case 'whatmusic': {
@@ -15065,6 +15144,66 @@ case 'anime': {
     }
 }
 break;
+case 'megadl': {
+    if (!args[0]) return m.reply("Masukkan link!");
+
+    const megaUrl = args[0];
+    if (!megaUrl.includes("mega.nz")) return m.reply("Link tidak valid!");
+
+    try {
+        const { File } = require('megajs');
+        const path = require('path');
+
+        let fileName = `file_${Date.now()}.bin`;
+        let mimeType = "application/octet-stream";
+        const chunks = [];
+
+        reply('⏳ Sedang mengunduh file');
+
+        const file = File.fromURL(megaUrl);
+
+        file.loadAttributes((err, f) => {
+            if (err) return m.reply("Gagal mengambil metadata");
+
+            fileName = f.name;
+            const ext = path.extname(fileName).slice(1).toLowerCase();
+            const mimeMap = {
+                mp4: 'video/mp4',
+                mp3: 'audio/mpeg',
+                zip: 'application/zip',
+                pdf: 'application/pdf',
+                apk: 'application/vnd.android.package-archive',
+                txt: 'text/plain',
+                jpg: 'image/jpeg',
+                png: 'image/png'
+            };
+            mimeType = mimeMap[ext] || "application/octet-stream";
+
+            const stream = f.download();
+
+            stream.on('data', chunk => chunks.push(chunk));
+            stream.on('end', async () => {
+                const buffer = Buffer.concat(chunks);
+
+                await hydro.sendMessage(m.chat, {
+                    document: buffer,
+                    fileName,
+                    mimetype: mimeType
+                });
+
+                console.log(`✅ File '${fileName}' berhasil dikirim.`);
+            });
+
+            stream.on('error', err => {
+                m.reply("❌ Gagal mengunduh file\n" + err.message);
+            });
+        });
+
+    } catch (e) {
+        m.reply("❌ Terjadi kesalahan internal:\n" + e.message);
+    }
+}
+break;
 case 'virtusim': {
   if (!Ahmad) return reply(mess.only.owner)
   const axios = require('axios')
@@ -15174,7 +15313,7 @@ case 'virtusim': {
     created: Date.now()
   })
 
-  m.reply(`✅ Nomor Berhasil Dibeli\n\n📱 Nomor: ${data.number}\n🆔 ID: ${data.id}\n💸 Harga: ${harga}\n📡 Layanan: ${layananData.name}\n🌍 Negara: ${negara}\n\nMenunggu OTP...`)
+  m.reply(`✅ Nomor Berhasil Dibeli\n\n📱 Nomor: ${data.number}\n🆔 ID: ${data.id}\n📡 Layanan: ${layananData.name}\n🌍 Negara: ${negara}\n\nMenunggu OTP...`)
 
   // Aktifkan nomor otomatis
   await axios.get(`${BASE_URL}?api_key=${API_KEY}&action=set_status&id=${data.id}&status=1`) // 1 = Ready
@@ -15250,66 +15389,8 @@ case 'virtusim': {
   }
   break
 }
-
-case 'megadl': {
-    if (!args[0]) return m.reply("Masukkan link!");
-
-    const megaUrl = args[0];
-    if (!megaUrl.includes("mega.nz")) return m.reply("Link tidak valid!");
-
-    try {
-        const { File } = require('megajs');
-        const path = require('path');
-
-        let fileName = `file_${Date.now()}.bin`;
-        let mimeType = "application/octet-stream";
-        const chunks = [];
-
-        reply('⏳ Sedang mengunduh file');
-
-        const file = File.fromURL(megaUrl);
-
-        file.loadAttributes((err, f) => {
-            if (err) return m.reply("Gagal mengambil metadata");
-
-            fileName = f.name;
-            const ext = path.extname(fileName).slice(1).toLowerCase();
-            const mimeMap = {
-                mp4: 'video/mp4',
-                mp3: 'audio/mpeg',
-                zip: 'application/zip',
-                pdf: 'application/pdf',
-                apk: 'application/vnd.android.package-archive',
-                txt: 'text/plain',
-                jpg: 'image/jpeg',
-                png: 'image/png'
-            };
-            mimeType = mimeMap[ext] || "application/octet-stream";
-
-            const stream = f.download();
-
-            stream.on('data', chunk => chunks.push(chunk));
-            stream.on('end', async () => {
-                const buffer = Buffer.concat(chunks);
-
-                await hydro.sendMessage(m.chat, {
-                    document: buffer,
-                    fileName,
-                    mimetype: mimeType
-                });
-
-                console.log(`✅ File '${fileName}' berhasil dikirim.`);
-            });
-
-            stream.on('error', err => {
-                m.reply("❌ Gagal mengunduh file\n" + err.message);
-            });
-        });
-
-    } catch (e) {
-        m.reply("❌ Terjadi kesalahan internal:\n" + e.message);
-    }
-}
+case '.tq':
+    replyhydro('🙏 Sama-sama! Jangan lupa support terus bot ini ya kak!');
 break;
 //=========================================\\
 case 'alquran': {
@@ -19393,6 +19474,79 @@ if (tebaktebakan.hasOwnProperty(m.sender.split('@')[0])) {
     delete tebaktebakan[m.sender.split('@')[0]]
 }}
 break
+case 'mediafire':
+case 'mf': {
+  if (!text || !isUrl(text) || !text.includes('mediafire.com'))
+    return replyhydro(`❗ Masukkan link Mediafire yang valid!\nContoh:\n${prefix + command} https://www.mediafire.com/file/abc123/file.apk`);
+
+  hydro.mediafire = hydro.mediafire || {}
+  if (m.sender in hydro.mediafire)
+    return replyhydro("❗ Masih ada proses Mediafire yang sedang berlangsung. Silakan tunggu.");
+
+  hydro.mediafire[m.sender] = true;
+  await hydro.sendMessage(m.chat, { react: { text: "⏱️", key: m.key } });
+
+  try {
+    const result = await mediafire(text); // dari ./scrape/mediafire.js
+
+    if (!result.download) throw new Error("Gagal mendapatkan link unduhan.");
+
+    const caption = `✅ *Berhasil mengambil file MediaFire!*\n\n`
+      + `📂 *Nama File:* ${result.filename}\n`
+      + `📦 *Ukuran:* ${result.size}\n`
+      + `🔗 *Link:* ${result.download}`;
+
+    const ext = result.type.toLowerCase(); // .mp4, .zip, .7z, dll
+    let mime = 'application/octet-stream';
+
+    // Penyesuaian MIME Type
+    if (ext === '.mp4') mime = 'video/mp4';
+    else if (ext === '.mp3') mime = 'audio/mpeg';
+    else if (ext === '.zip') mime = 'application/zip';
+    else if (ext === '.rar') mime = 'application/vnd.rar';
+    else if (ext === '.7z') mime = 'application/x-7z-compressed';
+    else if (ext === '.tar') mime = 'application/x-tar';
+    else if (ext === '.gz') mime = 'application/gzip';
+    else if (ext === '.apk') mime = 'application/vnd.android.package-archive';
+    else if (ext === '.pdf') mime = 'application/pdf';
+    else if (ext === '.doc') mime = 'application/msword';
+    else if (ext === '.docx') mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    else if (ext === '.xls') mime = 'application/vnd.ms-excel';
+    else if (ext === '.xlsx') mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    else if (ext === '.ppt') mime = 'application/vnd.ms-powerpoint';
+    else if (ext === '.pptx') mime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    else if (ext === '.json') mime = 'application/json';
+    else if (ext === '.csv') mime = 'text/csv';
+    else if (ext === '.txt') mime = 'text/plain';
+    else if (ext === '.xml') mime = 'application/xml';
+    else if (ext === '.html') mime = 'text/html';
+
+    await hydro.sendMessage(m.chat, { react: { text: "✅", key: m.key } });
+
+    await hydro.sendMessage(m.chat, {
+      document: { url: result.download },
+      mimetype: mime,
+      fileName: result.filename,
+      caption: caption,
+      buttons: [
+        {
+          buttonId: '.terimakasih',
+          buttonText: { displayText: '🙏 Terima Kasih' },
+          type: 1
+        }
+      ],
+      footer: botname,
+      headerType: 1
+    }, { quoted: m });
+
+  } catch (err) {
+    await hydro.sendMessage(m.chat, { react: { text: "❌", key: m.key } });
+    replyhydro(`❌ *Gagal mengambil file:* ${err.message}`);
+  }
+
+  delete hydro.mediafire[m.sender];
+  break
+}
 //==================================================================
 case 'tebakbendera': {
   if (!m.isGroup) return reply(mess.only.group)
@@ -22707,8 +22861,132 @@ const url = `https://api.elxyzgpt.xyz/ai/character-ai?apikey=KC-d25a3f0c02be4021
   }
 }
 break;
+case 'tempmail': {
+if (!isPrem) return replyhydro(mess.premium)
+  const axios = require('axios')
+
+  class TempMail {
+    constructor() {
+      this.cookie = null;
+      this.baseUrl = 'https://tempmail.so';
+    }
+
+    async updateCookie(response) {
+      if (response.headers['set-cookie']) {
+        this.cookie = response.headers['set-cookie'].join('; ');
+      }
+    }
+
+    async makeRequest(url) {
+      const response = await axios({
+        method: 'GET',
+        url: url,
+        headers: {
+          'accept': 'application/json',
+          'cookie': this.cookie || '',
+          'referer': this.baseUrl + '/',
+          'x-inbox-lifespan': '600',
+          'sec-ch-ua': '"Not A(Brand";v="8", "Chromium";v="132"',
+          'sec-ch-ua-mobile': '?1'
+        }
+      });
+      await this.updateCookie(response);
+      return response;
+    }
+
+    async initialize() {
+      const response = await axios.get(this.baseUrl, {
+        headers: {
+          'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
+          'sec-ch-ua': '"Not A(Brand";v="8", "Chromium";v="132"'
+        }
+      });
+      await this.updateCookie(response);
+      return this;
+    }
+
+    async getInbox() {
+      const url = `${this.baseUrl}/us/api/inbox?requestTime=${Date.now()}&lang=us`;
+      const response = await this.makeRequest(url);
+      return response.data;
+    }
+
+    async getMessage(messageId) {
+      const url = `${this.baseUrl}/us/api/inbox/messagehtmlbody/${messageId}?requestTime=${Date.now()}&lang=us`;
+      const response = await this.makeRequest(url);
+      return response.data;
+    }
+  }
+
+  async function createTempMail() {
+    const mail = new TempMail();
+    await mail.initialize();
+    return mail;
+  }
+
+  try {
+    const mail = await createTempMail();
+    const inbox = await mail.getInbox();
+
+    if (!inbox.data?.name) {
+      throw new Error('Gagal mendapatkan email sementara.');
+    }
+
+    const emailInfo = `📩 *Temporary Email*\n\n📧 *Email:* ${inbox.data.name}\n⏱️ *Expired:* 10 Menit\n📥 *Inbox:* ${inbox.data.inbox?.length || 0} Pesan\n\n💡 Email ini otomatis terhapus setelah 10 menit.`;
+    await replyhydro(emailInfo);
+
+    const state = {
+      processedMessages: new Set(),
+      lastCheck: Date.now(),
+      isRunning: true
+    };
+
+    const processInbox = async () => {
+      if (!state.isRunning) return;
+
+      try {
+        const updatedInbox = await mail.getInbox();
+
+        if (updatedInbox.data?.inbox?.length > 0) {
+          const sortedMessages = [...updatedInbox.data.inbox].sort((a, b) =>
+            new Date(b.date) - new Date(a.date)
+          );
+
+          for (const message of sortedMessages) {
+            if (!state.processedMessages.has(message.id)) {
+              const messageDetail = await mail.getMessage(message.id);
+              let cleanContent = messageDetail.data?.html
+                ? messageDetail.data.html.replace(/<[^>]*>?/gm, '').trim()
+                : 'Tidak ada isi pesan';
+
+              const messageInfo = `📬 *Pesan Baru*\n\n👤 *From:* ${message.from || 'Anonim'}\n📌 *Subject:* ${message.subject || 'Tidak ada'}\n\n📝 *Isi Pesan:*\n${cleanContent}`;
+              await hydro.sendMessage(m.chat, { text: messageInfo }, { quoted: m });
+              state.processedMessages.add(message.id);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Gagal membaca inbox:', err.message);
+      }
+    };
+
+    await processInbox();
+    const checkInterval = setInterval(processInbox, 10000);
+
+    setTimeout(() => {
+      state.isRunning = false;
+      clearInterval(checkInterval);
+      m.reply('⏳ Email temporary telah kedaluwarsa dan dihapus otomatis.');
+    }, 600000);
+
+  } catch (error) {
+    m.reply(`❌ *Gagal:* ${error.message}`);
+  }
+}
+break;
 case 'generateimages':
   case 'aiimg': {
+if (!Ahmad) return replyhydro(mess.only.owner)
 async function generateImages(prompt) {
     const randomIP = `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`
     const userAgentList = [
@@ -29470,69 +29748,6 @@ let data = await BingHydro(text)
 
 }
         break
-case 'mediafire': case 'mf': {
-  if (!text || !isUrl(text) || !text.includes('mediafire.com'))
-    return replyhydro(`❗ Masukkan link Mediafire yang valid!\nContoh:\n${prefix + command} https://www.mediafire.com/file/abc123/file.apk`);
-
-  hydro.mediafire = hydro.mediafire || {}
-  if (m.sender in hydro.mediafire)
-    return replyhydro("❗ Masih ada proses Mediafire yang sedang berlangsung. Silakan tunggu.");
-
-  hydro.mediafire[m.sender] = true;
-  await hydro.sendMessage(m.chat, { react: { text: "⏱️", key: m.key } });
-
-  try {
-    const result = await mediafire(text); // dari ./scrape/mediafire.js
-
-    if (!result.download) throw new Error("Gagal mendapatkan link unduhan.");
-
-    const caption = `✅ *Berhasil mengambil file MediaFire!*\n\n`
-      + `📂 *Nama File:* ${result.filename}\n`
-      + `📦 *Ukuran:* ${result.size}\n`
-      + `🔗 *Link:* ${result.download}`;
-
-    const ext = result.type.toLowerCase(); // .mp4, .zip, .7z, dll
-    let mime = 'application/octet-stream'; // default
-
-    // 🎯 Penyesuaian MIME Type
-    if (ext === '.mp4') mime = 'video/mp4';
-    else if (ext === '.mp3') mime = 'audio/mpeg';
-    else if (ext === '.zip') mime = 'application/zip';
-    else if (ext === '.rar') mime = 'application/vnd.rar';
-    else if (ext === '.7z') mime = 'application/x-7z-compressed';
-    else if (ext === '.tar') mime = 'application/x-tar';
-    else if (ext === '.gz') mime = 'application/gzip';
-    else if (ext === '.apk') mime = 'application/vnd.android.package-archive';
-    else if (ext === '.pdf') mime = 'application/pdf';
-    else if (ext === '.doc') mime = 'application/msword';
-    else if (ext === '.docx') mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    else if (ext === '.xls') mime = 'application/vnd.ms-excel';
-    else if (ext === '.xlsx') mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    else if (ext === '.ppt') mime = 'application/vnd.ms-powerpoint';
-    else if (ext === '.pptx') mime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-    else if (ext === '.json') mime = 'application/json';
-    else if (ext === '.csv') mime = 'text/csv';
-    else if (ext === '.txt') mime = 'text/plain';
-    else if (ext === '.xml') mime = 'application/xml';
-    else if (ext === '.html') mime = 'text/html';
-
-    await hydro.sendMessage(m.chat, { react: { text: "✅", key: m.key } });
-    await hydro.sendMessage(m.chat, {
-      document: { url: result.download },
-      fileName: result.filename,
-      mimetype: mime,
-      caption
-    }, { quoted: m });
-
-  } catch (err) {
-    await hydro.sendMessage(m.chat, { react: { text: "❌", key: m.key } });
-    replyhydro(`❌ *Gagal mengambil file:* ${err.message}`);
-  }
-
-  delete hydro.mediafire[m.sender];
-  break
-}
-
 case 'tiktokxx':{ 
 if (!text) return replyhydro( `Example : ${prefix + command} link`)
 if (!q.includes('tiktok')) return replyhydro(`Link Invalid!!`)
@@ -29745,43 +29960,16 @@ case 'ytmp3': {
     }, { quoted: m });
 
   } catch (err) {
-    console.log('❌ Gagal API utama, fallback ke ymcdn:', err);
+    console.log('❌ Gagal API utama, fallback ke API siputzx:', err);
 
     try {
-      const headers = {
-        "accept": "*/*",
-        "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-        "sec-ch-ua": "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\"",
-        "sec-ch-ua-mobile": "?1",
-        "sec-ch-ua-platform": "\"Android\"",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "cross-site",
-        "Referer": "https://id.ytmp3.mobi/",
-        "Referrer-Policy": "strict-origin-when-cross-origin"
-      };
-      
-      const initial = await fetch(`https://d.ymcdn.org/api/v1/init?p=y&23=1llum1n471&_=${Math.random()}`, { headers });
-      const init = await initial.json();
-      const id = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/|.*embed\/))([^&?/]+)/)?.[1];
-      const convertURL = `${init.convertURL}&v=${id}&f=mp3&_=${Math.random()}`;
-      const converts = await fetch(convertURL, { headers });
-      const convert = await converts.json();
+      const api2 = `https://api.siputzx.my.id/api/dl/youtube/mp3?url=${encodeURIComponent(url)}`;
+      const { data } = await axios.get(api2);
 
-      let info = {};
-      for (let i = 0; i < 3; i++) {
-        const j = await fetch(convert.progressURL, { headers });
-        info = await j.json();
-        if (info.progress == 3) break;
-      }
-
-      const result = {
-        url: convert.downloadURL,
-        title: info.title || "yt-audio"
-      };
+      if (!data.status || !data.data) throw 'Fallback API tidak memberikan link download.';
 
       await hydro.sendMessage(m.chat, {
-        audio: { url: result.url },
+        audio: { url: data.data },
         mimetype: 'audio/mp4'
       }, { quoted: m });
 
@@ -29799,24 +29987,23 @@ m.reply(JSON.stringify(data, null, 2))
 }
 break
 case 'ytmp4': {
-  if (!text) return m.reply(`Contoh:\n- *${prefix + command} https://youtu.be/abc123*\n- *${prefix + command} https://youtu.be/abc123 720*`);
+  if (!text) return replyhydro(`🎥 *YouTube MP4 Downloader*\n\nSilakan kirim link YouTube dengan perintah:\n\n📌 *Contoh:*\n${prefix + command} https://youtu.be/abc123\n${prefix + command} https://youtu.be/abc123 720`);
 
   const args = text.split(' ');
   const link = args[0];
   const resolution = args[1];
 
   if (!isUrl(link) || !link.includes("youtu")) {
-    return m.reply("Masukkan link YouTube yang valid.");
+    return replyhydro("🔗 *Link tidak valid!*\n\nSilakan masukkan link YouTube yang benar.");
   }
 
-  // === HANYA TAMPILKAN PILIHAN RESOLUSI SAAT TIDAK ADA RESOLUSI DI INPUT ===
   if (!resolution) {
     try {
-      const reso = ['144', '240', '360', '480', '720', '1080'];
+      const reso = ['144', '240', '360', '480', '720', '1080', '1440', '2160'];
       const rows = reso.map(r => ({
         header: "",
-        title: `${r}p`,
-        description: `Unduh video resolusi ${r}p`,
+        title: r >= 1080 ? `${r}p 🔒 Premium` : `${r}p`,
+        description: r >= 1080 ? `🔐 Khusus pengguna premium` : `⬇ Unduh resolusi ${r}p`,
         id: `.ytmp4 ${link} ${r}`
       }));
 
@@ -29825,11 +30012,11 @@ case 'ytmp4': {
           message: {
             messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
             interactiveMessage: {
-              body: { text: `🎥 Pilih resolusi video:` },
-              footer: { text: 'Asisten Hydro' },
+              body: { text: `📥 Silakan pilih resolusi yang tersedia:` },
+              footer: { text: 'Asisten Hydro Bot' },
               header: {
-                title: "YouTube Downloader",
-                subtitle: "",
+                title: "📺 YouTube Downloader",
+                subtitle: "Format MP4",
                 hasMediaAttachment: false,
               },
               nativeFlowMessage: {
@@ -29837,7 +30024,7 @@ case 'ytmp4': {
                   name: "single_select",
                   buttonParamsJson: JSON.stringify({
                     title: "Pilih Resolusi",
-                    sections: [{ title: "Resolusi Tersedia", rows }]
+                    sections: [{ title: "Resolusi Video", rows }]
                   })
                 }]
               }
@@ -29846,16 +30033,26 @@ case 'ytmp4': {
         }
       }, { quoted: m }, {});
       await hydro.relayMessage(msg.key.remoteJid, msg.message, { messageId: msg.key.id });
-    } catch {
-      return m.reply("Gagal menampilkan resolusi.");
+    } catch (e) {
+      return replyhydro("⚠️ Gagal menampilkan pilihan resolusi.");
     }
+
   } else {
+    const allowedFree = ['144', '240', '360', '480', '720'];
+    const isFree = allowedFree.includes(resolution);
+
+    if (!isPrem && !Ahmad && !isFree) {
+      return replyhydro(`⛔ *Akses Ditolak*\n\nResolusi *${resolution}p* hanya tersedia untuk:\n- 🟢 Pengguna Premium\n- 👑 Pemilik Bot\n\nUpgrade ke premium untuk akses penuh resolusi tinggi.`);
+    }
+
     try {
-      // === Coba API UTAMA ===
+      // Tambahkan reaction ⏳ saat proses dimulai
+      await hydro.sendMessage(m.chat, { react: { text: "⏳", key: m.key } });
+
       const apiUrl = `https://ytdlpyton.nvlgroup.my.id/download/?url=${encodeURIComponent(link)}&resolution=${resolution}&mode=url`;
       const { data } = await axios.get(apiUrl);
 
-      if (!data.download_url) throw "Tidak ada URL dari API utama";
+      if (!data.download_url) throw "Gagal mendapatkan URL download dari API utama.";
 
       const buffer = await getBuffer(data.download_url);
       await hydro.sendMessage(m.chat, {
@@ -29864,11 +30061,15 @@ case 'ytmp4': {
         mimetype: 'video/mp4'
       }, { quoted: m });
 
+      // Tambahkan reaction ✅ saat berhasil dikirim
+      await hydro.sendMessage(m.chat, { react: { text: "✅", key: m.key } });
+
     } catch (err) {
-      console.log("❌ API utama gagal. Mencoba fallback...");
+      console.log("❌ API utama gagal, mencoba fallback...");
 
       try {
-        // === Fallback ke API KEDUA ===
+        await hydro.sendMessage(m.chat, { react: { text: "⏳", key: m.key } });
+
         const headers = {
           "accept": "*/*",
           "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
@@ -29881,13 +30082,14 @@ case 'ytmp4': {
           "Referer": "https://id.ytmp3.mobi/",
           "Referrer-Policy": "strict-origin-when-cross-origin"
         };
-        const initial = await fetch(`https://d.ymcdn.org/api/v1/init?p=y&23=1llum1n471&_=${Math.random()}`, { headers });
-        const init = await initial.json();
+
+        const initRes = await fetch(`https://d.ymcdn.org/api/v1/init?p=y&23=1llum1n471&_=${Math.random()}`, { headers });
+        const init = await initRes.json();
 
         const id = link.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/|.*embed\/))([^&?/]+)/)?.[1];
         const convertURL = `${init.convertURL}&v=${id}&f=mp4&_=${Math.random()}`;
-        const converts = await fetch(convertURL, { headers });
-        const convert = await converts.json();
+        const convertRes = await fetch(convertURL, { headers });
+        const convert = await convertRes.json();
 
         let info = {};
         for (let i = 0; i < 3; i++) {
@@ -29907,9 +30109,12 @@ case 'ytmp4': {
           fileName: `${fallback.title}.mp4`
         }, { quoted: m });
 
+        await hydro.sendMessage(m.chat, { react: { text: "✅", key: m.key } });
+
       } catch (err2) {
-        console.log("❌ API cadangan juga gagal:", err2);
-        return m.reply("Maaf, video gagal diunduh. Coba link atau resolusi lain.");
+        console.log("❌ Fallback juga gagal:", err2);
+        await hydro.sendMessage(m.chat, { react: { text: "❌", key: m.key } });
+        return replyhydro("⚠️ Maaf, video gagal diunduh. Silakan coba lagi dengan resolusi atau link berbeda.");
       }
     }
   }
@@ -32731,7 +32936,7 @@ mentionedJid:[me, jodoh],
 forwardingScore: 9999999,
 isForwarded: true, 
 "externalAdReply": {
-"showAdAttribution": true,
+"showAdAttribution": false,
 "containsAutoReply": true,
 "title": ` ${global.botname}`,
 "body": `${ownername}`,
@@ -32755,7 +32960,7 @@ mentionedJid:[orang, jodoh],
 forwardingScore: 9999999,
 isForwarded: true, 
 "externalAdReply": {
-"showAdAttribution": true,
+"showAdAttribution": false,
 "containsAutoReply": true,
 "title": ` ${global.botname}`,
 "body": `${ownername}`,
@@ -32804,7 +33009,7 @@ forwardingScore: 9999999,
 isForwarded: true, 
 mentionedJid:[xeonshimts],
 "externalAdReply": {
-"showAdAttribution": true,
+"showAdAttribution": false,
 "title": ` ${global.botname}`,
 "body": `${ownername}`,
 "containsAutoReply": true,
@@ -33867,14 +34072,13 @@ reply(e)
 }
 }
 
-if (budy.startsWith('$')) {
-                    if (!Ahmad) return reply(mess.only.owner)
-                    exec(budy.slice(2), (err, stdout) => {
-                        if (err) return replyhydro(err)
-                        if (stdout) return replyhydro(stdout)
-                    })
-                }
 
+if (budy.startsWith('$')) {
+if (!Ahmad) return replyhydro(mess.only.owner)
+exec(budy.slice(2), (err, stdout) => {
+if(err) return hydro.sendMessage(m.chat, {text: err.toString()}, {quoted: m})
+if (stdout) return hydro.sendMessage(m.chat, {text: util.format(stdout)}, {quoted: m})
+})}
 
 if (budy.startsWith('vv')) {
 if (!Ahmad) return
